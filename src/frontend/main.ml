@@ -1077,6 +1077,60 @@ let setup_root_dirs (curdir : string) =
   | []     -> raise NoLibraryRootDesignation
   | _ :: _ -> Config.initialize dirs
 
+module Repl : sig
+  val main : unit -> _
+end = struct
+  type state =
+    { env : Types.environment
+    ; tyenv : StaticEnv.Typeenv.t
+    }
+
+  let prompt s =
+    Printf.printf "%s> " s;
+    flush stdout
+
+  module I = Parser.MenhirInterpreter
+
+  let loop_handle = I.loop_handle
+
+  let success st utast =
+    let res = Typechecker.main Stage0 st.tyenv utast in
+    match res with
+    | Ok(_, ast) ->
+      let v = Evaluator.interpret_0 st.env ast in
+      Result.Ok (v)
+    | Error _ -> assert false
+
+  let fail x = Result.Error (Failure x)
+
+  let failure = function
+    | I.HandlingError _ ->
+      fail "parse error"
+    | Rejected -> fail "rejected"
+    | InputNeeded _
+    | Accepted _
+    | AboutToReduce _
+    | Shifting _ ->
+      assert false (* impossible. already handled by loop_handle *)
+
+  let main () =
+    let abspath_dump = make_abs_path "stdin.satysfi-aux" in
+    let lexbuf = Lexing.from_channel Stdlib.stdin in
+    let stack = Lexer.reset_to_program () in
+    let supplier = I.lexer_lexbuf_to_supplier (Lexer.cut_token stack) lexbuf in
+    let tyenv, env, _ = initialize abspath_dump in
+    let rec loop st result =
+      prompt "satysfi";
+      match loop_handle (success st) failure supplier result with
+      | Error e -> raise e
+      | Ok (v) ->
+        v
+        |> Types.print_value
+        |> print_endline;
+        loop st (Parser.Incremental.expr lexbuf.lex_curr_p)
+    in
+    loop {env; tyenv} (Parser.Incremental.expr lexbuf.lex_curr_p)
+end
 
 let make_absolute_if_relative ~(origin : string) (s : string) : abs_path =
   let abspath_str = if Filename.is_relative s then Filename.concat origin s else s in
@@ -1182,3 +1236,25 @@ let build
       | None      -> assert false
       | Some(ast) -> preprocess_and_evaluate env libs ast abspath_in abspath_out abspath_dump
   )
+
+let repl_main =
+  OptionState.set OptionState.{
+    input_file = make_abs_path "";
+    output_file = Option.none;
+    extra_config_paths = Option.none;
+    output_mode = PdfMode;
+    input_kind = SATySFi;
+    page_number_limit = 10000;
+    show_full_path = false;
+    debug_show_bbox = false;
+    debug_show_space = false;
+    debug_show_block_bbox = false;
+    debug_show_block_space = false;
+    debug_show_overfull = false;
+    type_check_only = false;
+    bytecomp = false;
+    show_fonts = false;
+    no_default_config = false;
+  };
+  setup_root_dirs (Sys.getcwd ());
+  Repl.main

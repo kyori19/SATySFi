@@ -168,5 +168,4 @@ let command_main : unit Cmdliner.Cmd.t =
   Cmd.v info term
 
 let () =
-  let open Cmdliner in
-  exit (Cmd.eval command_main)
+  Main.repl_main()

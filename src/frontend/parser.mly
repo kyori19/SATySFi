@@ -298,7 +298,7 @@
 %left  BINOP_MINUS EXACT_MINUS
 %right BINOP_TIMES EXACT_TIMES BINOP_DIVIDES MOD
 
-%start main
+%start main expr
 %type<Types.header_element list * Types.untyped_source_file> main
 %type<Types.untyped_module> modexpr
 %type<Types.module_name_chain Types.ranged> mod_chain

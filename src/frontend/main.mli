@@ -17,3 +17,5 @@ val build :
   show_fonts:bool ->
   no_default_config:bool ->
   unit
+
+val repl_main : unit -> _
