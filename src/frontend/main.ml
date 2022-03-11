@@ -1096,9 +1096,9 @@ end = struct
   let success st utast =
     let res = Typechecker.main Stage0 st.tyenv utast in
     match res with
-    | Ok(_, ast) ->
+    | Ok(ty, ast) ->
       let v = Evaluator.interpret_0 st.env ast in
-      Result.Ok (v)
+      Result.Ok (v, ty)
     | Error _ -> assert false
 
   let fail x = Result.Error (Failure x)
@@ -1123,10 +1123,11 @@ end = struct
       prompt "satysfi";
       match loop_handle (success st) failure supplier result with
       | Error e -> raise e
-      | Ok (v) ->
-        v
-        |> Printer.print_value
-        |> print_endline;
+      | Ok (v, ty) ->
+        Printf.printf "%s : %s\n"
+            (Printer.print_value v)
+            (Printer.print_mono_type ty)
+            ;
         loop st (Parser.Incremental.repl_expr lexbuf.lex_curr_p)
     in
     loop {env; tyenv} (Parser.Incremental.repl_expr lexbuf.lex_curr_p)

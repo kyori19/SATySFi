@@ -26,3 +26,5 @@ let print_value x =
     | x -> Types.show_base_constant x
   in
   print x
+
+let print_mono_type _ = "(* TODO *)"
