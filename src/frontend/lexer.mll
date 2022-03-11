@@ -383,6 +383,10 @@ rule lex_program stack = parse
         else
           report_error lexbuf "text input ended while reading a program area"
       }
+  | ";" {
+        let pos = get_pos lexbuf in
+        SEMICOLON(pos)
+   }
   | _ as c
       { report_error lexbuf (Printf.sprintf "illegal token '%s' in a program area" (String.make 1 c)) }
 

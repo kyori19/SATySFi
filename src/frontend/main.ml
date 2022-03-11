@@ -1127,9 +1127,9 @@ end = struct
         v
         |> Types.print_value
         |> print_endline;
-        loop st (Parser.Incremental.expr lexbuf.lex_curr_p)
+        loop st (Parser.Incremental.repl_expr lexbuf.lex_curr_p)
     in
-    loop {env; tyenv} (Parser.Incremental.expr lexbuf.lex_curr_p)
+    loop {env; tyenv} (Parser.Incremental.repl_expr lexbuf.lex_curr_p)
 end
 
 let make_absolute_if_relative ~(origin : string) (s : string) : abs_path =

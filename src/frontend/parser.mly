@@ -298,7 +298,7 @@
 %left  BINOP_MINUS EXACT_MINUS
 %right BINOP_TIMES EXACT_TIMES BINOP_DIVIDES MOD
 
-%start main expr
+%start main repl_expr
 %type<Types.header_element list * Types.untyped_source_file> main
 %type<Types.untyped_module> modexpr
 %type<Types.module_name_chain Types.ranged> mod_chain
@@ -316,7 +316,7 @@
 %type<Types.row_variable_name ranged * Types.manual_row_base_kind> rowquant
 %type<Types.manual_type> typ_app
 %type<Types.manual_type> typ_bot
-%type<Types.untyped_abstract_tree> expr
+%type<Types.untyped_abstract_tree> expr repl_expr
 %type<Types.untyped_abstract_tree> expr_op
 %type<Types.untyped_abstract_tree> expr_app
 %type<Types.untyped_abstract_tree> expr_bot
@@ -788,6 +788,9 @@ typ_macro_arg:
       { MLateMacroParameter(mnty) }
   | EXACT_TILDE; mnty=typ_bot
       { MEarlyMacroParameter(mnty) }
+
+repl_expr: e=expr SEMICOLON { e };
+
 expr:
   | tokL=MATCH; utast=expr; WITH; BAR?; branches=separated_nonempty_list(BAR, branch); tokR=END
       { make_standard (Tok tokL) (Tok tokR) (UTPatternMatch(utast, branches)) }
