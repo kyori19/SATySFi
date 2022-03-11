@@ -1125,7 +1125,7 @@ end = struct
       | Error e -> raise e
       | Ok (v) ->
         v
-        |> Types.print_value
+        |> Printer.print_value
         |> print_endline;
         loop st (Parser.Incremental.repl_expr lexbuf.lex_curr_p)
     in
