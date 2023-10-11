@@ -10,3 +10,21 @@
    cmdliner)
  (preprocess no_preprocessing)
 )
+
+(executable
+ (name satysfi_jupyter_kernel)
+ (public_name satysfi-jupyter-kernel)
+ (modules satysfi_jupyter_kernel)
+ (libraries
+   main
+   satysfi_jupyter_kernel_stubs)
+ (enabled_if (= full %{profile}))
+)
+
+(library
+ (name satysfi_jupyter_kernel_stubs)
+ (modules)
+ (c_library_flags -lstdc++ -lxeus -lxeus-zmq)
+ (foreign_stubs (language cxx) (names satysfi_jupyter_kernel))
+ (enabled_if (= full %{profile}))
+)
