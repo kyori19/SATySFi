@@ -16,11 +16,12 @@
  (action
   (with-stdout-to parser.output (run ./parser_test.exe %{deps}))))
 
-(alias
- (name runtest)
+(rule
+ (alias runtest)
  (action (diff parser.expected parser.output)))
 
 (executable
+ (modes exe)
  (name parser_test)
  (libraries main core_kernel)
  (preprocess (pps ppx_deriving.show)))

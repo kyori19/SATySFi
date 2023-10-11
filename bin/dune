@@ -1,4 +1,5 @@
 (executable
+ (modes exe)
  (name satysfi)
  (public_name satysfi)
  (libraries

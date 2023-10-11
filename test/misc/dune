@@ -1,4 +1,5 @@
 (test
+  (modes exe)
   (name miscTest)
   (libraries
     main
