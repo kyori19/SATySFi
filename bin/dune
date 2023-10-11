@@ -1,4 +1,5 @@
 (executables
+ (modes exe)
  (names satysfi isat)
  (public_names satysfi isat)
  (modules
