@@ -599,6 +599,11 @@ type untyped_source_file =
   | UTDocumentFile of untyped_document_file
 [@@deriving show { with_path = false; }]
 
+type untyped_repl_expr =
+  | UTAST of untyped_abstract_tree
+  | UTVal of untyped_rec_or_nonrec
+  | Empty
+
 type font_file_contents =
   | OpentypeSingle     of var_name
   | OpentypeCollection of var_name list
