@@ -297,8 +297,9 @@
 %left  BINOP_MINUS EXACT_MINUS
 %right BINOP_TIMES EXACT_TIMES BINOP_DIVIDES MOD
 
-%start main
+%start main repl_main
 %type<Types.untyped_source_file> main
+%type<Types.untyped_repl_expr> repl_main
 %type<Types.untyped_attribute> attribute
 %type<Types.untyped_module> modexpr
 %type<Types.module_name_chain Types.ranged> mod_chain
@@ -368,6 +369,16 @@ main:
       { UTDocumentFile(attrs, header, utast) }
   | rng=EOI
       { raise (ParseError(EmptyInputFile(rng))) }
+;
+repl_main:
+  | utast=expr; EOI
+      { UTAST(utast) }
+  | utast=block; EOI
+      { UTAST(utast) }
+  | VAL; valbind=bind_value; EOI
+      { UTVal(valbind) }
+  | EOI
+      { Empty }
 ;
 main_lib:
   | MODULE; modident=UPPER; utsig_opt=option(sig_annot); EXACT_EQ; STRUCT; utbinds=list(bind); END

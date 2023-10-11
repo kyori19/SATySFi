@@ -1,6 +1,9 @@
-(executable
- (name satysfi)
- (public_name satysfi)
+(executables
+ (names satysfi isat)
+ (public_names satysfi isat)
+ (modules
+   satysfi
+   isat)
  (libraries
    main
    cmdliner)

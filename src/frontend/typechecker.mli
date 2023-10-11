@@ -10,3 +10,5 @@ val typecheck_letrec : pre -> type_environment -> untyped_let_binding list -> ((
 val main : stage -> Typeenv.t -> untyped_abstract_tree -> (mono_type * abstract_tree, type_error) result
 
 val are_unifiable : mono_type -> mono_type -> bool
+
+val is_nonexpansive_expression : abstract_tree -> bool
