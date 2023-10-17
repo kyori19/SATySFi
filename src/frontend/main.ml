@@ -81,14 +81,6 @@ let unfreeze_environment ((valenv, stenvref, stmap) : frozen_environment) : envi
   (valenv, ref stenv)
 
 
-let output_pdf (abspath_out : abs_path) (pdfret : HandlePdf.t) : unit =
-  HandlePdf.write_to_file abspath_out pdfret
-
-
-let output_text (abspath_out : abs_path) (data : string) : unit =
-  Core.Out_channel.write_all (get_abs_path_string abspath_out) ~data
-
-
 let eval_library_file ~(run_tests : bool) (env : environment) (abspath : abs_path) (binds : binding list) : environment =
   Logging.begin_to_eval_file abspath;
   if OptionState.is_bytecomp_mode () then
@@ -125,29 +117,6 @@ let eval_main (i : int) (env_freezed : frozen_environment) (ast : abstract_tree)
 let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : abs_path) (abspath_dump : abs_path) =
   let env_freezed = freeze_environment env in
 
-  let text_backend = (EvalUtil.get_string, output_text) in
-  let pdf_backend =
-    let post_eval value =
-      match value with
-      | BaseConstant(BCDocument(paper_size, pbstyle, columnhookf, columnendhookf, pagecontf, pagepartsf, imvblst)) ->
-          Logging.start_page_break ();
-          State.start_page_break ();
-          begin
-            match pbstyle with
-            | SingleColumn ->
-                PageBreak.main ~paper_size
-                  columnhookf pagecontf pagepartsf imvblst
-
-            | MultiColumn(origin_shifts) ->
-                PageBreak.main_multicolumn ~paper_size
-                  origin_shifts columnhookf columnendhookf pagecontf pagepartsf imvblst
-          end
-      | _ ->
-          EvalUtil.report_bug_value "main; not a DocumentValue(...)" value
-    in
-    (post_eval, output_pdf)
-  in
-
   let eval_and_output (post_eval, output) =
     let rec aux (i : int) =
       let value_eval = eval_main i env_freezed ast in
@@ -171,9 +140,9 @@ let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : 
   in
 
   if OptionState.is_text_mode () then
-    eval_and_output text_backend
+    eval_and_output Backend.text
   else
-    eval_and_output pdf_backend
+    eval_and_output Backend.pdf
 
 
 (* Performs preprecessing. the evaluation is run by the naive interpreter
