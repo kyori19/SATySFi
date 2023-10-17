@@ -124,34 +124,15 @@ let eval_main (i : int) (env_freezed : frozen_environment) (ast : abstract_tree)
 
 let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : abs_path) (abspath_dump : abs_path) =
   let env_freezed = freeze_environment env in
-  if OptionState.is_text_mode () then
-    let rec aux (i : int) =
-      let value_str = eval_main i env_freezed ast in
-      let s = EvalUtil.get_string value_str in
-      match CrossRef.needs_another_trial abspath_dump with
-      | CrossRef.NeedsAnotherTrial ->
-          Logging.needs_another_trial ();
-          aux (i + 1);
 
-      | CrossRef.CountMax ->
-          Logging.achieve_count_max ();
-          output_text abspath_out s;
-          Logging.end_output abspath_out;
-
-      | CrossRef.CanTerminate unresolved_crossrefs ->
-          Logging.achieve_fixpoint unresolved_crossrefs;
-          output_text abspath_out s;
-          Logging.end_output abspath_out;
-    in
-    aux 1
-  else
-    let rec aux (i : int) =
-      let value_doc = eval_main i env_freezed ast in
-      match value_doc with
+  let text_backend = (EvalUtil.get_string, output_text) in
+  let pdf_backend =
+    let post_eval value =
+      match value with
       | BaseConstant(BCDocument(paper_size, pbstyle, columnhookf, columnendhookf, pagecontf, pagepartsf, imvblst)) ->
           Logging.start_page_break ();
           State.start_page_break ();
-          let pdf =
+          begin
             match pbstyle with
             | SingleColumn ->
                 PageBreak.main ~paper_size
@@ -160,28 +141,39 @@ let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : 
             | MultiColumn(origin_shifts) ->
                 PageBreak.main_multicolumn ~paper_size
                   origin_shifts columnhookf columnendhookf pagecontf pagepartsf imvblst
-          in
-          begin
-            match CrossRef.needs_another_trial abspath_dump with
-            | CrossRef.NeedsAnotherTrial ->
-                Logging.needs_another_trial ();
-                aux (i + 1);
-
-            | CrossRef.CountMax ->
-                Logging.achieve_count_max ();
-                output_pdf abspath_out pdf;
-                Logging.end_output abspath_out;
-
-            | CrossRef.CanTerminate unresolved_crossrefs ->
-                Logging.achieve_fixpoint unresolved_crossrefs;
-                output_pdf abspath_out pdf;
-                Logging.end_output abspath_out;
           end
-
       | _ ->
-          EvalUtil.report_bug_value "main; not a DocumentValue(...)" value_doc
+          EvalUtil.report_bug_value "main; not a DocumentValue(...)" value
+    in
+    (post_eval, output_pdf)
+  in
+
+  let eval_and_output (post_eval, output) =
+    let rec aux (i : int) =
+      let value_eval = eval_main i env_freezed ast in
+      let value_out = post_eval value_eval in
+      match CrossRef.needs_another_trial abspath_dump with
+      | CrossRef.NeedsAnotherTrial ->
+          Logging.needs_another_trial ();
+          aux (i + 1);
+
+      | CrossRef.CountMax ->
+          Logging.achieve_count_max ();
+          output abspath_out value_out;
+          Logging.end_output abspath_out;
+
+      | CrossRef.CanTerminate unresolved_crossrefs ->
+          Logging.achieve_fixpoint unresolved_crossrefs;
+          output abspath_out value_out;
+          Logging.end_output abspath_out;
     in
     aux 1
+  in
+
+  if OptionState.is_text_mode () then
+    eval_and_output text_backend
+  else
+    eval_and_output pdf_backend
 
 
 (* Performs preprecessing. the evaluation is run by the naive interpreter
