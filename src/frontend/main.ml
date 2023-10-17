@@ -81,8 +81,8 @@ let unfreeze_environment ((valenv, stenvref, stmap) : frozen_environment) : envi
   (valenv, ref stenv)
 
 
-let output_pdf (pdfret : HandlePdf.t) : unit =
-  HandlePdf.write_to_file pdfret
+let output_pdf (abspath_out : abs_path) (pdfret : HandlePdf.t) : unit =
+  HandlePdf.write_to_file abspath_out pdfret
 
 
 let output_text (abspath_out : abs_path) (data : string) : unit =
@@ -154,11 +154,11 @@ let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : 
           let pdf =
             match pbstyle with
             | SingleColumn ->
-                PageBreak.main abspath_out ~paper_size
+                PageBreak.main ~paper_size
                   columnhookf pagecontf pagepartsf imvblst
 
             | MultiColumn(origin_shifts) ->
-                PageBreak.main_multicolumn abspath_out ~paper_size
+                PageBreak.main_multicolumn ~paper_size
                   origin_shifts columnhookf columnendhookf pagecontf pagepartsf imvblst
           in
           begin
@@ -169,12 +169,12 @@ let eval_document_file (env : environment) (ast : abstract_tree) (abspath_out : 
 
             | CrossRef.CountMax ->
                 Logging.achieve_count_max ();
-                output_pdf pdf;
+                output_pdf abspath_out pdf;
                 Logging.end_output abspath_out;
 
             | CrossRef.CanTerminate unresolved_crossrefs ->
                 Logging.achieve_fixpoint unresolved_crossrefs;
-                output_pdf pdf;
+                output_pdf abspath_out pdf;
                 Logging.end_output abspath_out;
           end
 

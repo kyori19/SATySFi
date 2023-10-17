@@ -1,6 +1,5 @@
 (* -*- coding: utf-8 -*- *)
 
-open MyUtil
 open LengthInterface
 open HorzBox
 
@@ -693,9 +692,9 @@ let chop_single_column_with_insertion (pbinfo : page_break_info) (content_height
   chop_single_column pbinfo content_height (List.append pbvblst_inserted pbvblst)
 
 
-let main (absname_out : abs_path) ~(paper_size : length * length) (columnhookf : column_hook_func) (pagecontf : page_content_scheme_func) (pagepartsf : page_parts_scheme_func) (vblst : vert_box list) : HandlePdf.t =
+let main ~(paper_size : length * length) (columnhookf : column_hook_func) (pagecontf : page_content_scheme_func) (pagepartsf : page_parts_scheme_func) (vblst : vert_box list) : HandlePdf.t =
 
-  let pdfinit = HandlePdf.create_empty_pdf absname_out in
+  let pdfinit = HandlePdf.create_empty_pdf () in
 
   let rec aux pageno (pdfacc : HandlePdf.t) pbvblst =
     let pbinfo = { current_page_number = pageno; } in
@@ -714,9 +713,9 @@ let main (absname_out : abs_path) ~(paper_size : length * length) (columnhookf :
   aux 1 pdfinit pbvblst
 
 
-let main_multicolumn (absname_out : abs_path) ~(paper_size : length * length) (origin_shifts : length list) (columnhookf : column_hook_func) (columnendhookf : column_hook_func) (pagecontf : page_content_scheme_func) (pagepartsf : page_parts_scheme_func) (vblst : vert_box list) : HandlePdf.t =
+let main_multicolumn ~(paper_size : length * length) (origin_shifts : length list) (columnhookf : column_hook_func) (columnendhookf : column_hook_func) (pagecontf : page_content_scheme_func) (pagepartsf : page_parts_scheme_func) (vblst : vert_box list) : HandlePdf.t =
 
-  let pdfinit = HandlePdf.create_empty_pdf absname_out in
+  let pdfinit = HandlePdf.create_empty_pdf () in
 
   let page_number_limit = OptionState.get_page_number_limit () in
 
