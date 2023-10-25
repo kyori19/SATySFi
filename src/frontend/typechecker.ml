@@ -255,6 +255,16 @@ let rec typecheck_pattern (pre : pre) (tyenv : Typeenv.t) ((rng, utpatmain) : un
 
 
 let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_abstract_tree) : (abstract_tree * mono_type) ok =
+  let (ctxty, bbty, ibty, mbty, ri, rb) =
+    if OptionState.is_text_mode () then
+      let ri (ctx, expr) = PrimitiveStringifyInline(ctx, expr) in
+      let rb (ctx, expr) = PrimitiveStringifyBlock(ctx, expr) in
+      (TextInfoType, StringType, StringType, StringType, ri, rb)
+    else
+      let ri (ctx, expr) = PrimitiveReadInline(ctx, expr) in
+      let rb (ctx, expr) = PrimitiveReadBlock(ctx, expr) in
+      (ContextType, BlockBoxesType, InlineBoxesType, MathBoxesType, ri, rb)
+  in
   let open ResultMonad in
   let typecheck_iter ?s:(s = pre.stage) ?l:(l = pre.level) ?p:(p = pre.type_parameters) ?r:(r = pre.row_parameters) ?q:(q = pre.quantifiability) t u =
     let presub =
@@ -437,18 +447,12 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
     } ->
       let* (tyenv, params) = typecheck_abstraction pre tyenv param_units in
       let (rng_var, varnm_ctx) = ident_ctx in
-      let (bsty_var, bsty_ret) =
-        if OptionState.is_text_mode () then
-          (TextInfoType, StringType)
-        else
-          (ContextType, InlineBoxesType)
-      in
       let evid_ctx = EvalVarID.fresh ident_ctx in
       let* (e_body, ty_body) =
         let tyenv =
           let ventry =
             {
-              val_type  = Poly(rng_var, BaseType(bsty_var));
+              val_type  = Poly(rng_var, BaseType(ctxty));
               val_name  = Some(evid_ctx);
               val_stage = pre.stage;
             }
@@ -457,7 +461,7 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
         in
         typecheck_iter tyenv utast_body
       in
-      let* () = unify ty_body (Range.dummy "lambda-inline-return", BaseType(bsty_ret)) in
+      let* () = unify ty_body (Range.dummy "lambda-inline-return", BaseType(ibty)) in
       let e =
         List.fold_right (fun (evid_labmap, pat, _, _) e ->
           Function(evid_labmap, PatternBranch(pat, e))
@@ -477,18 +481,12 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
     } ->
       let* (tyenv, params) = typecheck_abstraction pre tyenv param_units in
       let (rng_var, varnm_ctx) = ident_ctx in
-      let (bsty_var, bsty_ret) =
-        if OptionState.is_text_mode () then
-          (TextInfoType, StringType)
-        else
-          (ContextType, BlockBoxesType)
-      in
       let evid_ctx = EvalVarID.fresh ident_ctx in
       let* (e_body, ty_body) =
         let tyenv_sub =
           let ventry =
             {
-              val_type  = Poly(rng_var, BaseType(bsty_var));
+              val_type  = Poly(rng_var, BaseType(ctxty));
               val_name  = Some(evid_ctx);
               val_stage = pre.stage;
             }
@@ -497,7 +495,7 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
         in
         typecheck_iter tyenv_sub utast_body
       in
-      let* () = unify ty_body (Range.dummy "lambda-block-return", BaseType(bsty_ret)) in
+      let* () = unify ty_body (Range.dummy "lambda-block-return", BaseType(bbty)) in
       let e =
         List.fold_right (fun (evid_labmap, pat, _, _) e ->
           Function(evid_labmap, PatternBranch(pat, e))
@@ -518,12 +516,6 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
     } ->
       let* (tyenv, params) = typecheck_abstraction pre tyenv param_units in
       let (rng_ctx_var, varnm_ctx) = ident_ctx in
-      let (bsty_ctx_var, bsty_ret) =
-        if OptionState.is_text_mode () then
-          (TextInfoType, StringType)
-        else
-          (ContextType, MathBoxesType)
-      in
       let evid_ctx = EvalVarID.fresh ident_ctx in
       let script_params_opt =
         ident_pair_opt |> Option.map (fun (ident_sub, ident_sup) ->
@@ -535,7 +527,7 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
       let tyenv =
         let ventry =
           {
-            val_type  = Poly(rng_ctx_var, BaseType(bsty_ctx_var));
+            val_type  = Poly(rng_ctx_var, BaseType(ctxty));
             val_name  = Some(evid_ctx);
             val_stage = pre.stage;
           }
@@ -575,7 +567,7 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
             (tyenv, Some((evid_sub, evid_sup)))
       in
       let* (e_body, ty_body) = typecheck_iter tyenv utast_body in
-      let* () = unify ty_body (Range.dummy "lambda-math-return", BaseType(bsty_ret)) in
+      let* () = unify ty_body (Range.dummy "lambda-math-return", BaseType(mbty)) in
       let e =
         List.fold_right (fun (evid_labmap, pat, _, _) e ->
           Function(evid_labmap, PatternBranch(pat, e))
@@ -775,28 +767,18 @@ let rec typecheck (pre : pre) (tyenv : Typeenv.t) ((rng, utastmain) : untyped_ab
   | UTReadInline(utast_ctx, utastI) ->
       let* (e_ctx, ty_ctx) = typecheck_iter tyenv utast_ctx in
       let* (eI, tyI) = typecheck_iter tyenv utastI in
-      let (e_ret, bsty_ctx, bsty_ret) =
-        if OptionState.is_text_mode () then
-          (PrimitiveStringifyInline(e_ctx, eI), TextInfoType, StringType)
-        else
-          (PrimitiveReadInline(e_ctx, eI), ContextType, InlineBoxesType)
-      in
-      let* () = unify ty_ctx (Range.dummy "ut-read-inline-1", BaseType(bsty_ctx)) in
+      let e_ret = ri (e_ctx, eI) in
+      let* () = unify ty_ctx (Range.dummy "ut-read-inline-1", BaseType(ctxty)) in
       let* () = unify tyI (Range.dummy "ut-read-inline-2", BaseType(InlineTextType)) in
-      return (e_ret, (rng, BaseType(bsty_ret)))
+      return (e_ret, (rng, BaseType(ibty)))
 
   | UTReadBlock(utast_ctx, utastB) ->
       let* (e_ctx, ty_ctx) = typecheck_iter tyenv utast_ctx in
       let* (eB, tyB) = typecheck_iter tyenv utastB in
-      let (e_ret, bsty_ctx, bsty_ret) =
-        if OptionState.is_text_mode () then
-          (PrimitiveStringifyBlock(e_ctx, eB), TextInfoType, StringType)
-        else
-          (PrimitiveReadBlock(e_ctx, eB), ContextType, BlockBoxesType)
-      in
-      let* () = unify ty_ctx (Range.dummy "ut-read-block-1", BaseType(bsty_ctx)) in
+      let e_ret = rb (e_ctx, eB) in
+      let* () = unify ty_ctx (Range.dummy "ut-read-block-1", BaseType(ctxty)) in
       let* () = unify tyB (Range.dummy "ut-read-block-2", BaseType(BlockTextType)) in
-      return (e_ret, (rng, BaseType(bsty_ret)))
+      return (e_ret, (rng, BaseType(bbty)))
 
   | UTNext(utast1) ->
       begin
