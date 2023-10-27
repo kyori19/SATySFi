@@ -63,7 +63,7 @@ let typecheck_library_file ~for_struct:(tyenv_for_struct : Typeenv.t) ~for_sig:(
   res |> Result.map_error (fun tyerr -> TypeError(tyerr))
 
 
-let typecheck_document_file (tyenv : Typeenv.t) (abspath_in : abs_path) (utast : untyped_abstract_tree) : abstract_tree ok =
+let typecheck_document_file (workspace_mode : bool) (tyenv : Typeenv.t) (abspath_in : abs_path) (utast : untyped_abstract_tree) : abstract_tree ok =
   let open ResultMonad in
   Logging.begin_to_typecheck_file abspath_in;
   let* (ty, ast) = Typechecker.main Stage1 tyenv utast |> Result.map_error (fun tyerr -> TypeError(tyerr)) in
@@ -74,10 +74,19 @@ let typecheck_document_file (tyenv : Typeenv.t) (abspath_in : abs_path) (utast :
     else
       err (NotAStringFile(abspath_in, ty))
   else
-    if Typechecker.are_unifiable ty (Range.dummy "pdf-mode", BaseType(DocumentType)) then
-      return ast
+    if workspace_mode then
+      let arg = (Range.dummy "argument", BaseType(BlockTextType)) in
+      let ret = (Range.dummy "return", BaseType(DocumentType)) in
+      let ex = FuncType(RowEmpty, arg, ret) in
+      if Typechecker.are_unifiable ty (Range.dummy "workspace-mode", ex) then
+        return ast
+      else
+        err (NotAWorkspaceFile(abspath_in, ty))
     else
-      err (NotADocumentFile(abspath_in, ty))
+      if Typechecker.are_unifiable ty (Range.dummy "pdf-mode", BaseType(DocumentType)) then
+        return ast
+      else
+        err (NotADocumentFile(abspath_in, ty))
 
 
 let check_library_package (tyenv_prim : Typeenv.t) (genv : global_type_environment) (main_module_name : module_name) (utlibs : (abs_path * untyped_library_file) list) =
@@ -170,7 +179,7 @@ let main (tyenv_prim : Typeenv.t) (genv : global_type_environment) (package : un
       check_font_package main_module_name font_files
 
 
-let main_document (tyenv_prim : Typeenv.t) (genv : global_type_environment) (sorted_locals : (abs_path * untyped_library_file) list) (abspath_and_utdoc : abs_path * untyped_document_file) : ((abs_path * binding list) list * abstract_tree) ok =
+let main_document (workspace_mode : bool) (tyenv_prim : Typeenv.t) (genv : global_type_environment) (sorted_locals : (abs_path * untyped_library_file) list) (abspath_and_utdoc : abs_path * untyped_document_file) : ((abs_path * binding list) list * abstract_tree) ok =
   let open ResultMonad in
   let* (genv, libacc) =
     sorted_locals |> foldM (fun (genv, libacc) (abspath, utlib) ->
@@ -190,7 +199,7 @@ let main_document (tyenv_prim : Typeenv.t) (genv : global_type_environment) (sor
   let* ast_doc =
     let (abspath, (_attrs, header, utast)) = abspath_and_utdoc in
     let* tyenv = tyenv_prim |> add_dependency_to_type_environment ~package_only:false header genv in
-    typecheck_document_file tyenv abspath utast
+    typecheck_document_file workspace_mode tyenv abspath utast
   in
 
   return (libs, ast_doc)

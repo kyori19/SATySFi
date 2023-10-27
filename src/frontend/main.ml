@@ -951,6 +951,13 @@ let report_config_error : config_error -> unit = function
         DisplayLine(Display.show_mono_type ty);
       ]
 
+  | NotAWorkspaceFile(abspath_in, ty) ->
+      let fname = convert_abs_path_to_show abspath_in in
+      report_error Typechecker [
+        NormalLine(Printf.sprintf "file '%s' is not a workspace file; it is of type" fname);
+        DisplayLine(Display.show_mono_type ty);
+      ]
+
   | FileModuleNotFound(rng, modnm) ->
       report_error Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
@@ -1553,9 +1560,10 @@ type build_input =
 
 let get_input_kind_from_extension (abspathstr_in : string) =
   match Filename.extension abspathstr_in with
-  | ".saty" -> Ok(InputSatysfi)
-  | ".md"   -> Ok(InputMarkdown)
-  | ext     -> Error(ext)
+  | ".saty"  -> Ok(InputSatysfi)
+  | ".satyw" -> Ok(InputSatysfiWorkspace)
+  | ".md"    -> Ok(InputMarkdown)
+  | ext      -> Error(ext)
 
 
 let check_depended_packages ~(use_test_only_lock : bool) ~(library_root : abs_path) ~(extensions : string list) (tyenv_prim : Typeenv.t) (lock_config : LockConfig.t) =
@@ -1740,14 +1748,20 @@ let build
         in
 
         (* Typechecking and elaboration: *)
+        let workspace_mode = (input_kind = InputSatysfiWorkspace) in
         let (libs_local, ast_doc) =
-          match PackageChecker.main_document tyenv_prim genv sorted_locals (abspath_in, utdoc) with
+          match PackageChecker.main_document workspace_mode tyenv_prim genv sorted_locals (abspath_in, utdoc) with
           | Ok(pair) -> pair
           | Error(e) -> raise (ConfigError(e))
         in
         let libs = List.append libs libs_local in
         if type_check_only then
           ()
+        else if workspace_mode then
+          begin
+            print_string "workspace mode prepared.\n";
+            ()
+          end
         else
           preprocess_and_evaluate ~run_tests:false env libs ast_doc abspath_in abspath_out abspath_dump
   )
@@ -1858,8 +1872,9 @@ let test
           in
 
           (* Typechecking and elaboration: *)
+          let workspace_mode = (input_kind = InputSatysfiWorkspace) in
           let (libs_local, _ast_doc) =
-            match PackageChecker.main_document tyenv_prim genv sorted_locals (abspath_in, utdoc) with
+            match PackageChecker.main_document workspace_mode tyenv_prim genv sorted_locals (abspath_in, utdoc) with
             | Ok(pair) -> pair
             | Error(e) -> raise (ConfigError(e))
           in
@@ -1936,7 +1951,8 @@ let extract_attributes_from_document_file (input_kind : input_kind) (abspath_in 
   let open ResultMonad in
   Logging.begin_to_parse_file abspath_in;
   match input_kind with
-  | InputSatysfi ->
+  | InputSatysfi
+  | InputSatysfiWorkspace ->
       let* utsrc =
         ParserInterface.process_file abspath_in
           |> Result.map_error (fun rng -> FailedToParse(rng))
