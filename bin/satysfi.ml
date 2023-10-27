@@ -2,6 +2,7 @@
 let build
   fpath_in
   fpath_out_opt
+  fpath_jupyter_connection_opt
   config_paths_str_opt
   text_mode_formats_str_opt
   page_number_limit
@@ -18,6 +19,7 @@ let build
   Main.build
     ~fpath_in
     ~fpath_out_opt
+    ~fpath_jupyter_connection_opt
     ~config_paths_str_opt
     ~text_mode_formats_str_opt
     ~page_number_limit
@@ -69,6 +71,12 @@ let flag_output : (string option) Cmdliner.Term.t =
   let open Cmdliner in
   let doc = "Specify output path." in
   Arg.(value (opt (some string) None (info [ "o"; "output" ] ~docv:"OUTPUT" ~doc)))
+
+
+let flag_jupyter_connection : (string option) Cmdliner.Term.t =
+  let open Cmdliner in
+  let doc = "Specify Jupyter connection file path." in
+  Arg.(value (opt (some string) None (info [ "jupyter-connection-file" ] ~docv:"CONNECTION" ~doc)))
 
 
 let flag_config =
@@ -154,6 +162,7 @@ let command_build =
     Term.(const build
       $ arg_in
       $ flag_output
+      $ flag_jupyter_connection
       $ flag_config
       $ flag_text_mode
       $ flag_page_number_limit

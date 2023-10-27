@@ -1625,6 +1625,7 @@ let load_package ~(use_test_files : bool) ~(extensions : string list) (abspath_i
 let build
     ~(fpath_in : string)
     ~(fpath_out_opt : string option)
+    ~(fpath_jupyter_connection_opt : string option)
     ~(config_paths_str_opt : string option)
     ~(text_mode_formats_str_opt : string option)
     ~(page_number_limit : int)
@@ -1759,8 +1760,7 @@ let build
           ()
         else if workspace_mode then
           begin
-            print_string "workspace mode prepared.\n";
-            ()
+            Jupyter.main fpath_jupyter_connection_opt
           end
         else
           preprocess_and_evaluate ~run_tests:false env libs ast_doc abspath_in abspath_out abspath_dump
