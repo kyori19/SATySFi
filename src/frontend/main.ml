@@ -245,9 +245,10 @@ type build_input =
 
 let get_input_kind_from_extension (abspathstr_in : string) =
   match Filename.extension abspathstr_in with
-  | ".saty" -> Ok(InputSatysfi)
-  | ".md"   -> Ok(InputMarkdown)
-  | ext     -> Error(ext)
+  | ".saty"  -> Ok(InputSatysfi)
+  | ".satyw" -> Ok(InputSatysfiWorkspace)
+  | ".md"    -> Ok(InputMarkdown)
+  | ext      -> Error(ext)
 
 
 let check_depended_packages ~(use_test_only_lock : bool) ~(library_root : abs_path) ~(extensions : string list) (tyenv_prim : Typeenv.t) (lock_config : LockConfig.t) =
@@ -628,7 +629,8 @@ let extract_attributes_from_document_file (input_kind : input_kind) (abspath_in 
   let open ResultMonad in
   Logging.begin_to_parse_file abspath_in;
   match input_kind with
-  | InputSatysfi ->
+  | InputSatysfi
+  | InputSatysfiWorkspace ->
       let* utsrc =
         ParserInterface.process_file abspath_in
           |> Result.map_error (fun rng -> FailedToParse(rng))

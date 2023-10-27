@@ -104,6 +104,7 @@ type package_solution = {
 
 type input_kind =
   | InputSatysfi
+  | InputSatysfiWorkspace
   | InputMarkdown
 
 type dependency_flag =

@@ -160,7 +160,8 @@ let main ~(extensions : string list) (input_kind : input_kind) (configenv : Pack
   let open ResultMonad in
   let* (graph, utdoc) =
     match input_kind with
-    | InputSatysfi ->
+    | InputSatysfi
+    | InputSatysfiWorkspace ->
         register_document_file extensions abspath_in
 
     | InputMarkdown ->
