@@ -251,7 +251,7 @@ let show_error_category = function
   | System      -> "Error"
 
 
-let report_error (cat : error_category) (lines : line list) =
+let print_error_message (cat : error_category) (lines : line list) =
   print_string (Printf.sprintf "! [%s] " (show_error_category cat));
   lines |> List.fold_left (fun (is_first : bool) (line : line) ->
     begin
@@ -269,8 +269,7 @@ let report_error (cat : error_category) (lines : line list) =
             print_endline ("      " ^ s)
     end;
     false
-  ) true |> ignore;
-  exit 1
+  ) true |> ignore
 
 
 let make_candidates_message (candidates : string list) =
@@ -370,33 +369,33 @@ let make_unification_error_message (dispmap : DisplayMap.t) (ue : unification_er
       [] (* TODO (error): detailed report *)
 
 
-let report_parse_error = function
+let print_parse_error = function
   | CannotProgressParsing(rng) ->
-      report_error Parser [
+      print_error_message Parser [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
       ]
 
   | IllegalItemDepth{ range = rng; before; current } ->
-      report_error Parser [
+      print_error_message Parser [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "illegal item depth %d after %d" before current);
       ]
 
   | EmptyInputFile(rng) ->
-      report_error Parser [
+      print_error_message Parser [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("empty input.");
       ]
 
 
-let report_type_error = function
+let print_type_error = function
   | UndefinedVariable(rng, varnm, candidates) ->
       let candidates_message_lines =
         match make_candidates_message candidates with
         | None    -> []
         | Some(s) -> [ NormalLine(s) ]
       in
-      report_error Typechecker (List.concat [
+      print_error_message Typechecker (List.concat [
         [
           NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
           NormalLine(Printf.sprintf "undefined variable '%s'." varnm);
@@ -410,7 +409,7 @@ let report_type_error = function
         | None    -> []
         | Some(s) -> [ NormalLine(s) ]
       in
-      report_error Typechecker (List.concat [
+      print_error_message Typechecker (List.concat [
         [
           NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
           NormalLine(Printf.sprintf "undefined constructor '%s'." constrnm);
@@ -419,48 +418,48 @@ let report_type_error = function
       ])
 
   | UndefinedTypeName(rng, tynm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined type '%s'." tynm);
       ]
 
   | UndefinedTypeVariable(rng, tyvarnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined type variable '%s'." tyvarnm);
       ]
 
   | UndefinedRowVariable(rng, rowvarnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined row variable '%s'." rowvarnm);
       ]
 
   | UndefinedKindName(rng, kdnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined kind '%s'." kdnm);
       ]
 
   | UndefinedModuleName(rng, modnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined module '%s'." modnm);
       ]
 
   | UndefinedSignatureName(rng, signm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined signature '%s'." signm);
       ]
   | UndefinedMacro(rng, csnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined macro '%s'." csnm);
       ]
 
   | InvalidNumberOfMacroArguments(rng, macparamtys) ->
-      report_error Typechecker (List.append [
+      print_error_message Typechecker (List.append [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("invalid number of macro arguments; types expected on arguments are:");
       ] (macparamtys |> List.map (function
@@ -469,7 +468,7 @@ let report_type_error = function
       )))
 
   | LateMacroArgumentExpected(rng, ty) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("an early macro argument is given, but a late argument of type");
         DisplayLine(Display.show_mono_type ty);
@@ -477,7 +476,7 @@ let report_type_error = function
       ]
 
   | EarlyMacroArgumentExpected(rng, ty) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("a late macro argument is given, but an early argument of type");
         DisplayLine(Display.show_mono_type ty);
@@ -485,59 +484,59 @@ let report_type_error = function
       ]
 
   | UnknownUnitOfLength(rng, unitnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "undefined unit of length '%s'." unitnm);
       ]
 
   | InlineCommandInMath(rng) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("an inline command is used as a math command.");
       ]
 
   | MathCommandInInline(rng) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("a math command is used as an inline command.");
       ]
 
   | BreaksValueRestriction(rng) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("this expression breaks the value restriction;");
         NormalLine("it should be a syntactic function.");
       ]
 
   | MultiplePatternVariable(rng1, rng2, varnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s" (Range.to_string rng1));
         NormalLine(Printf.sprintf "and at %s:" (Range.to_string rng2));
         NormalLine(Printf.sprintf "pattern variable '%s' is bound more than once." varnm);
       ]
 
   | LabelUsedMoreThanOnce(rng, label) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "'%s' is used more than once." label);
       ]
 
   | InvalidExpressionAsToStaging(rng, stage) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("invalid expression as to stage;");
         NormalLine(Printf.sprintf "should be used at %s." (string_of_stage stage));
       ]
 
   | InvalidOccurrenceAsToStaging(rng, varnm, stage) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "invalid occurrence of variable '%s' as to stage;" varnm);
         NormalLine(Printf.sprintf "should be used at %s." (string_of_stage stage));
       ]
 
   | ApplicationOfNonFunction(rng, ty) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("this expression has type");
         DisplayLine(Display.show_mono_type ty);
@@ -546,14 +545,14 @@ let report_type_error = function
 
 
   | MultiCharacterMathScriptWithoutBrace(rng) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("more than one character is used as a math sub/superscript without braces;");
         NormalLine("use braces for making association explicit.");
       ]
 
   | IllegalNumberOfTypeArguments(rng, tynm, lenexp, lenerr) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "'%s' is expected to have %d type argument(s)," tynm lenexp);
         NormalLine(Printf.sprintf "but it has %d type argument(s) here." lenerr);
@@ -589,7 +588,7 @@ let report_type_error = function
                 ])
       in
       let detail = make_unification_error_message dispmap ue in
-      report_error Typechecker (List.concat [
+      print_error_message Typechecker (List.concat [
         [
           NormalLine(posmsg);
           NormalLine("this expression has type");
@@ -610,7 +609,7 @@ let report_type_error = function
       let str_row1 = Display.show_mono_row_by_map dispmap row1 |> Option.value ~default:"" in
       let str_row2 = Display.show_mono_row_by_map dispmap row2 |> Option.value ~default:"" in
       let detail = make_unification_error_message dispmap ue in
-      report_error Typechecker (List.concat [
+      print_error_message Typechecker (List.concat [
         [
           NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
           NormalLine("the option row is");
@@ -623,69 +622,69 @@ let report_type_error = function
       ])
 
   | TypeParameterBoundMoreThanOnce(rng, tyvarnm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "type variable %s is bound more than once." tyvarnm);
       ]
 
   | ConflictInSignature(rng, member) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "'%s' is declared more than once in a signature." member);
       ]
 
   | NotAStructureSignature(rng, _fsig) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("not a structure signature (TODO (enhance): detailed report)");
       ]
 
   | NotAFunctorSignature(rng, _ssig) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("not a functor signature (TODO (enhance): detailed report)");
       ]
 
   | MissingRequiredValueName(rng, x, pty) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required value '%s' of type" x);
         DisplayLine(Display.show_poly_type pty);
       ]
 
   | MissingRequiredMacroName(rng, csnm, pmacty) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required macro '%s' of type" csnm);
         DisplayLine(Display.show_poly_macro_type pmacty);
       ]
 
   | MissingRequiredConstructorName(rng, ctornm, _centry) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required constructor '%s' (TODO (enhance): detailed report)" ctornm);
       ]
 
   | MissingRequiredTypeName(rng, tynm, arity) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required type '%s' of arity %d" tynm arity);
       ]
 
   | MissingRequiredModuleName(rng, modnm, _modsig) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required module '%s' (TODO (enhance): detailed report)" modnm);
       ]
 
   | MissingRequiredSignatureName(rng, signm, _absmodsig) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required signature '%s' (TODO (enhance): detailed report)" signm);
       ]
 
   | NotASubtypeAboutValue(rng, x, pty1, pty2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a subtype about value '%s'; type" x);
         DisplayLine(Display.show_poly_type pty1);
@@ -694,7 +693,7 @@ let report_type_error = function
       ]
 
   | NotASubtypeAboutValueStage(rng, x, stage1, stage2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a subtype about the stage of value '%s';" x);
         DisplayLine(string_of_stage stage1);
@@ -703,7 +702,7 @@ let report_type_error = function
       ]
 
   | NotASubtypeAboutMacro(rng, csnm, pmacty1, pmacty2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a subtype about macro '%s'; type" csnm);
         DisplayLine(Display.show_poly_macro_type pmacty1);
@@ -712,26 +711,26 @@ let report_type_error = function
       ]
 
   | NotASubtypeAboutConstructor(rng, ctornm, _tyscheme1, _tyscheme2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a subtype about constructor '%s' (TODO (enhance): detailed report)" ctornm);
       ]
 
   | NotASubtypeAboutType(rng, tynm, tentry1, tentry2) ->
       Format.printf "1: %a,@ 2: %a@," pp_type_entry tentry1 pp_type_entry tentry2; (* TODO: remove this *)
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a subtype about type '%s' (TODO (enhance): detailed report)" tynm);
       ]
 
   | NotASubtypeSignature(rng, _modsig1, _modsig2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("not a subtype signature (TODO (enhance): detailed report)");
       ]
 
   | UnexpectedOptionalLabel(rng, label, ty_cmd) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "unexpected application of label '%s';" label);
         NormalLine(Printf.sprintf "the command used here has type");
@@ -739,14 +738,14 @@ let report_type_error = function
       ]
 
   | InvalidArityOfCommandApplication(rng, arity_expected, arity_actual) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "this command expects %d argument(s)," arity_expected);
         NormalLine(Printf.sprintf "but is applied to %d argument(s) here." arity_actual);
       ]
 
   | CannotRestrictTransparentType(rng, tynm) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot restrict transparent type '%s'." tynm);
       ]
@@ -754,7 +753,7 @@ let report_type_error = function
   | KindContradiction(rng, tynm, kd_expected, kd_actual) ->
       let Kind(bkds_expected) = kd_expected in
       let Kind(bkds_actual) = kd_actual in
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "type '%s' expects %d type argument(s)," tynm (List.length bkds_expected));
         NormalLine(Printf.sprintf "but is applied to %d type argument(s)." (List.length bkds_actual));
@@ -772,24 +771,24 @@ let report_type_error = function
           DisplayLine(Printf.sprintf "- '%s' (%s)" tynm (Range.to_string rng))
         )
       in
-      report_error Typechecker
+      print_error_message Typechecker
         (NormalLine("the following synonym types are cyclic:") :: lines)
 
   | MultipleSynonymTypeDefinition(tynm, rng1, rng2) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s" (Range.to_string rng1));
         NormalLine(Printf.sprintf "and %s:" (Range.to_string rng2));
         NormalLine(Printf.sprintf "synonym type '%s' is defined more than once." tynm);
       ]
 
   | ValueAttributeError(ValueAttribute.Unexpected(rng)) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("unexpected value attributes.");
       ]
 
   | TestMustBeStage1NonRec(rng) ->
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("tests must be stage-1 non-recursive bindings.");
       ]
@@ -867,123 +866,123 @@ let make_yaml_error_lines : yaml_error -> line list = function
       [ NormalLine(Printf.sprintf "not a command: '%s'%s" s (show_yaml_context yctx)) ]
 
 
-let report_document_attribute_error : DocumentAttribute.error -> unit = function
+let print_document_attribute_error : DocumentAttribute.error -> unit = function
   | NoConfigArgument(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("no config argument is given.");
       ]
 
   | DuplicateConfigAttribute(rng1, rng2) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("More than one attribute defines the config:");
         DisplayLine(Printf.sprintf "- %s" (Range.to_string rng1));
         DisplayLine(Printf.sprintf "- %s" (Range.to_string rng2));
       ]
 
   | NotAVersionRequirement(rng, s) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a version requirement: '%s'" s);
       ]
 
   | NotAPackageDependency(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a package dependency description.");
       ]
 
   | NotARegistry(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a registry description.");
       ]
 
   | NotARegistryRemote(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a registry remote description.");
       ]
 
   | LabelNotFound{ record_range; label } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string record_range));
         NormalLine(Printf.sprintf "this record does not have label '%s'." label);
       ]
 
   | DuplicateLabel{ record_range; label } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string record_range));
         NormalLine(Printf.sprintf "this record has more than one value for label '%s'." label);
       ]
 
   | NotAStringLiteral(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a string literal.");
       ]
 
   | NotAListLiteral(rng) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "not a list literal.");
       ]
 
   | DuplicateRegistryLocalName{ list_range; registry_local_name } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string list_range));
         NormalLine(Printf.sprintf "this list has more than one registy named '%s'." registry_local_name);
       ]
 
 
-let report_config_error : config_error -> unit = function
+let print_config_error : config_error -> unit = function
   | NotADocumentFile(abspath_in, ty) ->
       let fname = convert_abs_path_to_show abspath_in in
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "file '%s' is not a document file; it is of type" fname);
         DisplayLine(Display.show_mono_type ty);
       ]
 
   | NotAStringFile(abspath_in, ty) ->
       let fname = convert_abs_path_to_show abspath_in in
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "file '%s' is not a file for generating text; it is of type" fname);
         DisplayLine(Display.show_mono_type ty);
       ]
 
   | NotAWorkspaceFile(abspath_in, ty) ->
       let fname = convert_abs_path_to_show abspath_in in
-      report_error Typechecker [
+      print_error_message Typechecker [
         NormalLine(Printf.sprintf "file '%s' is not a workspace file; it is of type" fname);
         DisplayLine(Display.show_mono_type ty);
       ]
 
   | FileModuleNotFound(rng, modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot find a source file that defines module '%s'." modnm);
       ]
 
   | FileModuleNameConflict(modnm, abspath1, abspath2) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "more than one file defines module '%s':" modnm);
         DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath1));
         DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath2));
       ]
 
   | NoMainModule(modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "no main module '%s'." modnm);
       ]
 
   | UnknownPackageDependency(rng, modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "dependency on unknown package '%s'" modnm);
       ]
 
   | TypeError(tyerr) ->
-      report_type_error tyerr
+      print_type_error tyerr
 
   | CyclicFileDependency(cycle) ->
       let pairs =
@@ -991,46 +990,46 @@ let report_config_error : config_error -> unit = function
         | Loop(pair)   -> [ pair ]
         | Cycle(pairs) -> pairs |> TupleList.to_list
       in
-      report_error Interface (
+      print_error_message Interface (
         (NormalLine("cyclic dependency detected:")) ::
           (pairs |> List.map (fun (abspath, _) -> DisplayLine(get_abs_path_string abspath)))
       )
 
   | CannotReadFileOwingToSystem(msg) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot read file:");
         DisplayLine(msg);
       ]
 
   | LibraryContainsWholeReturnValue(abspath) ->
       let fname = get_abs_path_string abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "file '%s' is not a library; it has a return value." fname);
       ]
 
   | DocumentLacksWholeReturnValue(abspath) ->
       let fname = get_abs_path_string abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "file '%s' is not a document; it lacks a return value." fname);
       ]
 
   | CannotUseHeaderUse((rng, modnm)) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot specify 'use %s' here; use 'use %s of ...' instead." modnm modnm);
       ]
 
   | CannotUseHeaderUseOf((rng, modnm)) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot specify 'use %s of ...' here; use 'use %s' instead." modnm modnm);
       ]
 
   | FailedToParse(e) ->
-      report_parse_error e
+      print_parse_error e
 
   | MainModuleNameMismatch{ expected; got } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "main module name mismatch; expected '%s' but got '%s'." expected got);
       ]
 
@@ -1040,35 +1039,35 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" path)
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine("cannot find package directory. candidates:") :: lines)
 
   | PackageConfigNotFound(abspath) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot find a package config at:");
         DisplayLine(get_abs_path_string abspath);
       ]
 
   | PackageConfigError(abspath, e) ->
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "in %s: package config error;" (get_abs_path_string abspath)) ];
         make_yaml_error_lines e;
       ])
 
   | LockConfigNotFound(abspath) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot find a lock config at:");
         DisplayLine(get_abs_path_string abspath);
       ]
 
   | LockConfigError(abspath, e) ->
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "in %s: lock config error;" (get_abs_path_string abspath)) ];
         make_yaml_error_lines e;
       ])
 
   | RegistryConfigNotFound(abspath) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot find a registry config at:");
         DisplayLine(get_abs_path_string abspath);
       ]
@@ -1079,19 +1078,19 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "cannot find a registry config '%s'. candidates:" (get_lib_path_string libpath)) ];
         lines;
       ])
 
   | RegistryConfigError(abspath, e) ->
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "in %s: registry config error;" (get_abs_path_string abspath)) ];
         make_yaml_error_lines e;
       ])
 
   | LibraryRootConfigNotFound(abspath) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot find a library root config at:");
         DisplayLine(get_abs_path_string abspath);
       ]
@@ -1102,19 +1101,19 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "cannot find a library root config '%s'. candidates:" (get_lib_path_string libpath)) ];
         lines;
       ])
 
   | LibraryRootConfigError(abspath, e) ->
-      report_error Interface (List.concat [
+      print_error_message Interface (List.concat [
         [ NormalLine(Printf.sprintf "in %s: library root config error;" (get_abs_path_string abspath)) ];
         make_yaml_error_lines e;
       ])
 
   | LockNameConflict(lock_name) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "lock name conflict: '%s'" lock_name);
       ]
 
@@ -1124,11 +1123,11 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine(Printf.sprintf "package '%s' not found. candidates:" (get_lib_path_string libpath)) :: lines)
 
   | DependencyOnUnknownLock{ depending; depended } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "unknown depended lock '%s' of '%s'." depended depending);
       ]
 
@@ -1143,11 +1142,11 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- '%s'" modnm)
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine("the following packages are cyclic:") :: lines)
 
   | NotALibraryFile(abspath) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("the following file is expected to be a library file, but is not:");
         DisplayLine(get_abs_path_string abspath);
       ]
@@ -1158,7 +1157,7 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine(Printf.sprintf "cannot find '%s'. candidates:" (get_lib_path_string libpath)) :: lines)
 
   | LocalFileNotFound{ relative; candidates } ->
@@ -1167,29 +1166,29 @@ let report_config_error : config_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine(Printf.sprintf "cannot find local file '%s'. candidates:" relative) :: lines)
 
   | CannotSolvePackageConstraints ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot solve package constraints.");
       ]
 
   | DocumentAttributeError(e) ->
-      report_document_attribute_error e
+      print_document_attribute_error e
 
   | MarkdownClassNotFound(modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "package '%s' not found; required for converting Markdown documents." modnm);
       ]
 
   | NoMarkdownConversion(modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "package '%s' contains no Markdown conversion rule." modnm);
       ]
 
   | MoreThanOneMarkdownConversion(modnm) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "package '%s' contains more than one Markdown conversion rule." modnm);
       ]
 
@@ -1197,39 +1196,39 @@ let report_config_error : config_error -> unit = function
       begin
         match e with
         | InvalidHeaderComment ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine("invalid or missing header comment of a Markdown document.");
             ]
 
         | InvalidExtraExpression ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine("cannot parse an extra expression in a Markdown document.");
             ]
 
         | FailedToMakeDocumentAttribute(de) ->
-            report_document_attribute_error de
+            print_document_attribute_error de
       end
 
   | FailedToFetchTarball{ lock_name; exit_status; command } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "failed to fetch '%s' (exit status: %d). command:" lock_name exit_status);
         DisplayLine(command);
       ]
 
   | FailedToExtractTarball{ lock_name; exit_status; command } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "failed to extract the tarball of '%s' (exit status: %d). command:" lock_name exit_status);
         DisplayLine(command);
       ]
 
   | FailedToFetchExternalZip{ url; exit_status; command } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "failed to fetch file from '%s' (exit status: %d). command:" url exit_status);
         DisplayLine(command);
       ]
 
   | ExternalZipChecksumMismatch{ url; path; expected; got } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("checksum mismatch of an external zip file.");
         DisplayLine(Printf.sprintf "- fetched from: '%s'" url);
         DisplayLine(Printf.sprintf "- path: '%s'" (get_abs_path_string path));
@@ -1238,7 +1237,7 @@ let report_config_error : config_error -> unit = function
       ]
 
   | TarGzipChecksumMismatch{ lock_name; url; path; expected; got } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("checksum mismatch of a tarball.");
         DisplayLine(Printf.sprintf "- lock name: '%s'" lock_name);
         DisplayLine(Printf.sprintf "- fetched from: '%s'" url);
@@ -1248,13 +1247,13 @@ let report_config_error : config_error -> unit = function
       ]
 
   | FailedToExtractExternalZip{ exit_status; command } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "failed to extract a zip file (exit status: %d). command:" exit_status);
         DisplayLine(command);
       ]
 
   | FailedToCopyFile{ exit_status; command } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "failed to copy a file (exit status: %d). command:" exit_status);
         DisplayLine(command);
       ]
@@ -1263,7 +1262,7 @@ let report_config_error : config_error -> unit = function
       begin
         match e with
         | FailedToUpdateGitRegistry{ exit_status; command } ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine(Printf.sprintf "failed to update registry (exit status: %d). command:" exit_status);
               DisplayLine(command);
             ]
@@ -1273,56 +1272,56 @@ let report_config_error : config_error -> unit = function
       begin
         match e with
         | ContainsQueryParameter{ url } ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine("registry URLs must not contain query parameters:");
               DisplayLine(url);
             ]
 
         | NoUriScheme{ url } ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine("the registry URL does not contain a scheme:");
               DisplayLine(url);
             ]
 
         | UnexpectedUrlScheme{ url; scheme } ->
-            report_error Interface [
+            print_error_message Interface [
               NormalLine(Printf.sprintf "unexpected scheme '%s' in a registry URL:" scheme);
               DisplayLine(url);
             ]
       end
 
 
-let report_font_error : font_error -> unit = function
+let print_font_error : font_error -> unit = function
   | FailedToReadFont(abspath, msg) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot load font file '%s';" fname);
         DisplayLine(msg);
       ]
 
   | FailedToDecodeFont(abspath, e) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot decode font file '%s';" fname);
         NormalLine(Format.asprintf "%a" Otfed.Decode.Error.pp e);
       ]
 
   | FailedToMakeSubset(abspath, e) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot make a subset of font file '%s';" fname);
         NormalLine(Format.asprintf "%a" Otfed.Subset.Error.pp e);
       ]
 
   | NotASingleFont(abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "the font file '%s' is not a single font file." fname);
       ]
 
   | NotAFontCollectionElement(abspath, index) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "the font file '%s' (used with index %d) is not a collection." fname index);
       ]
 
@@ -1332,162 +1331,170 @@ let report_font_error : font_error -> unit = function
           DisplayLine(Printf.sprintf "- %s" (get_abs_path_string abspath))
         )
       in
-      report_error Interface
+      print_error_message Interface
         (NormalLine(Printf.sprintf "cannot find '%s'. candidates:" (get_lib_path_string libpath)) :: lines)
 
   | NoMathTable(abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "font file '%s' does not have a 'MATH' table." fname);
       ]
 
   | PostscriptNameNotFound(abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "font file '%s' does not have a PostScript name." fname);
       ]
 
   | CannotFindUnicodeCmap(abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "font file '%s' does not have a 'cmap' subtable for Unicode code points." fname);
       ]
 
   | CollectionIndexOutOfBounds{ path; index; num_elements } ->
       let fname = convert_abs_path_to_show path in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "%d: index out of bounds;" index);
         NormalLine(Printf.sprintf "font file '%s' has %d elements." fname num_elements);
       ]
 
 
-let error_log_environment (suspended : unit -> unit) : unit =
-  try
-    suspended ()
-  with
+let print_error_from_exn e =
+  match e with
   | RemainsToBeImplemented(msg) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("remains to be supported:");
         DisplayLine(msg);
       ]
 
   | NoLibraryRootDesignation ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("cannot determine where the SATySFi library root is;");
         NormalLine("set appropriate environment variables");
         NormalLine("or specify configuration search paths with -C option.");
       ]
 
   | ShouldSpecifyOutputFile ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("should specify output file for text mode.");
       ]
 
   | UnexpectedExtension(ext) ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "unexpected file extension '%s'." ext);
       ]
 
   | LoadHyph.InvalidPatternElement(rng) ->
-      report_error System [
+      print_error_message System [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine("invalid string for hyphenation pattern.");
       ]
 
   | HorzBox.FontIsNotSet{ raw; normalized } ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("font is not set;");
         DisplayLine(Printf.sprintf "- raw script: %s" (CharBasis.show_script raw));
         DisplayLine(Printf.sprintf "- normalized script: %s" (CharBasis.show_script normalized));
       ]
 
   | HorzBox.MathFontIsNotSet ->
-      report_error Interface [
+      print_error_message Interface [
         NormalLine("math font is not set.");
       ]
 
   | ConfigError(e) ->
-      report_config_error e
+      print_config_error e
 
   | FontInfo.FontInfoError(e) ->
-      report_font_error e
+      print_font_error e
 
   | ImageHashTable.CannotLoadPdf(msg, abspath, pageno) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot load PDF file '%s' page #%d;" fname pageno);
         DisplayLine(msg);
       ]
 
   | ImageHashTable.CannotLoadImage(msg, abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot load image file '%s';" fname);
         DisplayLine(msg);
       ]
 
   | ImageHashTable.ImageOfWrongFileType(abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot load image file '%s';" fname);
         DisplayLine("This file format is not supported.");
       ]
 
   | ImageHashTable.UnsupportedColorModel(_, abspath) ->
       let fname = convert_abs_path_to_show abspath in
-      report_error Interface [
+      print_error_message Interface [
         NormalLine(Printf.sprintf "cannot load image file '%s';" fname);
         DisplayLine("This color model is not supported.");
       ]
 
   | Lexer.LexError(rng, s) ->
-      report_error Lexer [
+      print_error_message Lexer [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(s);
       ]
 
   | MyYojsonUtil.SyntaxError(fname, msg) ->
-      report_error System [
+      print_error_message System [
         NormalLine(Printf.sprintf "in '%s':" fname);
         NormalLine(msg);
       ]
 
   | MyYojsonUtil.MultipleDesignation(rng, key) ->
-      report_error System [
+      print_error_message System [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "multiple designation for key '%s'." key);
       ]
 
   | Yojson.SafePos.Util.Type_error(msg, (pos, _)) ->
       let rng = MyYojsonUtil.make_range pos in
-      report_error System [
+      print_error_message System [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(msg);
       ]
 
   | MyYojsonUtil.MissingRequiredKey(rng, key) ->
-      report_error System [
+      print_error_message System [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "missing required key '%s'." key);
       ]
 
   | Evaluator.EvalError(s)
   | Vm.ExecError(s)
-      -> report_error Evaluator [ NormalLine(s); ]
+      -> print_error_message Evaluator [ NormalLine(s); ]
 
   | State.NotDuringPageBreak ->
-      report_error Evaluator [
+      print_error_message Evaluator [
         NormalLine("a primitive as to PDF annotation was called before page breaking starts.");
       ]
 
   | PageBreak.PageNumberLimitExceeded(m) ->
-      report_error Evaluator [
+      print_error_message Evaluator [
         NormalLine(Printf.sprintf "page number limit (= %d) exceeded." m);
         NormalLine(Printf.sprintf "If you really want to output more than %d pages, use '--page-number-limit'." m);
       ]
 
   | Sys_error(s) ->
-      report_error System [ NormalLine(s); ]
+      print_error_message System [ NormalLine(s); ]
+
+  | e -> raise e
+
+
+let error_log_environment (suspended : unit -> unit) : unit =
+  try
+    suspended ()
+  with e ->
+    print_error_from_exn e;
+    exit 1
 
 
 let setup_root_dirs ~(no_default_config : bool) ~(extra_config_paths : (string list) option) (curdir : string) : abs_path =
