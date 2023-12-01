@@ -944,6 +944,12 @@ let make_document_attribute_error_message : DocumentAttribute.error -> string = 
       ]
 
 
+let module_name_chain_to_string (((_, modnm0), modidents) : module_name_chain) =
+  let modidents = modidents |> List.map (fun (_, modnm) -> modnm) in
+  let modidents = modnm0 :: modidents in
+  modidents |> String.concat "."
+
+
 let make_config_error_message : config_error -> string = function
   | NotADocumentFile(abspath_in, ty) ->
       let fname = convert_abs_path_to_show abspath_in in
@@ -1022,13 +1028,15 @@ let make_config_error_message : config_error -> string = function
         NormalLine(Printf.sprintf "file '%s' is not a document; it lacks a return value." fname);
       ]
 
-  | CannotUseHeaderUse((rng, modnm)) ->
+  | CannotUseHeaderUse((rng, mod_chain)) ->
+      let modnm = module_name_chain_to_string mod_chain in
       make_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot specify 'use %s' here; use 'use %s of ...' instead." modnm modnm);
       ]
 
-  | CannotUseHeaderUseOf((rng, modnm)) ->
+  | CannotUseHeaderUseOf((rng, mod_chain)) ->
+      let modnm = module_name_chain_to_string mod_chain in
       make_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));
         NormalLine(Printf.sprintf "cannot specify 'use %s of ...' here; use 'use %s' instead." modnm modnm);
