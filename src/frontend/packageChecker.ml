@@ -195,7 +195,7 @@ let main (tyenv_prim : Typeenv.t) (genv : global_type_environment) (package : un
       check_font_package main_module_name font_files
 
 
-let main_document (workspace_mode : bool) (tyenv_prim : Typeenv.t) (genv : global_type_environment) (sorted_locals : (abs_path * untyped_library_file) list) (abspath_and_utdoc : abs_path * untyped_document_file) : ((abs_path * binding list) list * abstract_tree) ok =
+let main_document (tyenv_prim : Typeenv.t) (genv : global_type_environment) (sorted_locals : (abs_path * untyped_library_file) list) (header : header_element list) : ((abs_path * binding list) list * type_environment) ok =
   let open ResultMonad in
   let* (genv, libacc) =
     sorted_locals |> foldM (fun (genv, libacc) (abspath, utlib) ->
@@ -210,12 +210,6 @@ let main_document (workspace_mode : bool) (tyenv_prim : Typeenv.t) (genv : globa
     ) (genv, Alist.empty)
   in
   let libs = Alist.to_list libacc in
+  let* tyenv = tyenv_prim |> add_dependency_to_type_environment ~package_only:false header genv in
 
-  (* Typecheck the document: *)
-  let* ast_doc =
-    let (abspath, (_attrs, header, utast)) = abspath_and_utdoc in
-    let* tyenv = tyenv_prim |> add_dependency_to_type_environment ~package_only:false header genv in
-    typecheck_document_file workspace_mode tyenv abspath utast
-  in
-
-  return (libs, ast_doc)
+  return (libs, tyenv)

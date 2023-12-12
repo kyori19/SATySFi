@@ -642,7 +642,7 @@ let rec typecheck_module (tyenv : Typeenv.t) (utmod : untyped_module) : (signatu
       return ((OpaqueIDMap.empty, modsig), [])
 
   | UTModBinds(utbinds) ->
-      let* ((quant, ssig), binds) = typecheck_binding_list tyenv utbinds in
+      let* (_, (quant, ssig), binds) = typecheck_binding_list tyenv utbinds in
       return ((quant, ConcStructure(ssig)), binds)
 
   | UTModFunctor(modident1, utsig1, utmod2) ->
@@ -710,10 +710,10 @@ let rec typecheck_module (tyenv : Typeenv.t) (utmod : untyped_module) : (signatu
       return (absmodsig, [])
 
 
-and typecheck_binding_list (tyenv : Typeenv.t) (utbinds : untyped_binding list) : (StructSig.t abstracted * binding list) ok =
+and typecheck_binding_list (tyenv : Typeenv.t) (utbinds : untyped_binding list) : (Typeenv.t * StructSig.t abstracted * binding list) ok =
   let open ResultMonad in
-  let* (binds, (quant, ssig)) =
-    let* (bindacc, _tyenv, quantacc, ssigacc) =
+  let* (tyenv, binds, (quant, ssig)) =
+    let* (bindacc, tyenv, quantacc, ssigacc) =
       utbinds |> foldM (fun (bindacc, tyenv, quantacc, ssigacc) utbind ->
         let* (binds, (quant, ssig)) = typecheck_binding tyenv utbind in
         let tyenv = tyenv |> add_to_type_environment_by_signature ssig in
@@ -724,9 +724,9 @@ and typecheck_binding_list (tyenv : Typeenv.t) (utbinds : untyped_binding list) 
         | Error(s)    -> let (rng, _) = utbind in err (ConflictInSignature(rng, s))
       ) (Alist.empty, tyenv, OpaqueIDMap.empty, StructSig.empty)
     in
-    return (Alist.to_list bindacc, (quantacc, ssigacc))
+    return (tyenv, Alist.to_list bindacc, (quantacc, ssigacc))
   in
-  return ((quant, ssig), binds)
+  return (tyenv, (quant, ssig), binds)
 
 
 and typecheck_nonrec (pre : pre) (tyenv : Typeenv.t) (ident : var_name ranged) (utast1 : untyped_abstract_tree) (ty_expected_opt : mono_type option) =
@@ -949,10 +949,11 @@ let main (tyenv : Typeenv.t) (absmodsig_opt : (signature abstracted) option) (ut
   let open ResultMonad in
   match absmodsig_opt with
   | None ->
-      typecheck_binding_list tyenv utbinds
+      let* (_, assig, binds) = typecheck_binding_list tyenv utbinds in
+      return (assig, binds)
 
   | Some(absmodsig) ->
-      let* ((_, ssig), binds) = typecheck_binding_list tyenv utbinds in
+      let* (_, (_, ssig), binds) = typecheck_binding_list tyenv utbinds in
       let rng = Range.dummy "main_bindings" in (* TODO (error): give appropriate ranges *)
       let* (quant, modsig) = coerce_signature rng (ConcStructure(ssig)) absmodsig in
       let ssig =

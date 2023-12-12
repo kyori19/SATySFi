@@ -24,8 +24,8 @@
  (preprocess (pps
               ppx_deriving.show
               ))
- (c_library_flags -lstdc++ -lxeus -lxeus-zmq)
- (foreign_stubs (language cxx) (names satysfi_jupyter_kernel))
+ (c_library_flags -lstdc++ -lxeus -lxeus-zmq -lb64 -lpoppler-cpp)
+ (foreign_stubs (language cxx) (names satysfi_jupyter_kernel) (flags -std=c++23 -fPIC))
  )
 
 ;; dune requires all the .ml/.mli files to be in the same directory as the jbuild.

@@ -26,6 +26,7 @@
     | InlineState  (* inline mode *)
     | ActiveState  (* active mode *)
     | MathState    (* math mode *)
+    | CellState    (* cell mode *)
 
 
   let get_pos (lexbuf : Lexing.lexbuf) : Range.t =
@@ -730,6 +731,21 @@ and lex_active stack = parse
       }
 
 
+and lex_cell stack = parse
+  | "%!"
+      {
+        Stack.pop stack |> ignore;
+        Stack.push ProgramState stack;
+        CELL_PROG(get_pos lexbuf)
+      }
+  | ""
+      {
+        Stack.pop stack |> ignore;
+        Stack.push BlockState stack;
+        lex_block stack lexbuf
+      }
+
+
 and literal quote_length buffer = parse
   | "`"+
       {
@@ -811,5 +827,6 @@ and skip_spaces = parse
     | InlineState  -> lex_inline stack lexbuf
     | ActiveState  -> lex_active stack lexbuf
     | MathState    -> lex_math stack lexbuf
+    | CellState    -> lex_cell stack lexbuf
 
 }
