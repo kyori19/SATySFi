@@ -127,6 +127,13 @@ extern "C" {
       for (int i = 0; i < doc->pages(); i++) {
         auto page = doc->create_page(i);
         auto img = renderer.render_page(page, 198, 198);
+
+        auto data = img.const_data();
+        if (std::all_of(data, data + 1024, [](unsigned char c) { return c == std::numeric_limits<unsigned char>::max(); })) {
+          std::cout << "intentionally skipping blank page" << std::endl;
+          continue;
+        }
+
         auto path = std::filesystem::temp_directory_path() / std::filesystem::path("XXXXXX");
         auto name = path.string();
         if (mkstemp(name.data()) > -1 && img.save(name, "png")) {
