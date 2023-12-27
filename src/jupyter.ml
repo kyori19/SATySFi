@@ -6,7 +6,7 @@ open Types
 
 
 external start_kernel : string -> unit = "start_kernel"
-(* external return_text : int -> string -> unit = "return_text" *)
+external return_text : int -> string -> unit = "return_text"
 external return_pdf : int -> bytes -> bool -> unit = "return_pdf"
 external return_error_message : string -> string -> string list -> unit = "return_error_message"
 
@@ -38,7 +38,7 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
     in
 
     match utcell with
-    | CellProg(utbinds) ->
+    | CellDefs(utbinds) ->
       (* Typecheck *)
       let binds =
         match ModuleTypechecker.typecheck_binding_list !tyenv utbinds with
@@ -64,40 +64,50 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
         env := env_new
       in
       ()
-    | CellBlock(utast) ->
+    | CellExpr(utast) ->
       (* Typecheck *)
-      let (ty, bast) =
+      let (ty, ast) =
         match Typechecker.main Stage1 !tyenv utast with
         | Ok ast  -> ast
         | Error e -> raise (ConfigError(TypeError e))
       in
-      if Typechecker.are_unifiable ty (Range.dummy "workspace-input", BaseType(BlockTextType)) then
-        ()
-      else
-        raise (ConfigError(NotAWorkspaceInput ty))
-      ;
 
-      (* Evaluate block *)
-      let bast =
-        let code = Evaluator.interpret_1 !env bast in
+      (* Evaluate input *)
+      let ast =
+        let code = Evaluator.interpret_1 !env ast in
         unlift_code code
       in
 
-      (* Evaluate document *)
-      let _ =
-        let ast = Apply(LabelMap.empty, fnast, bast) in
-        let output_pdf (pdfret : HandlePdf.t) : unit =
-          HandlePdf.write_to_file pdfret
+      (* Check output type *)
+      let (ast, is_doc) =
+        if Typechecker.are_unifiable ty (Range.dummy "workspace-input", BaseType(BlockTextType)) then
+          Apply(LabelMap.empty, fnast, ast), true
+        else
+          ast, Typechecker.are_unifiable ty (Range.dummy "pdf-mode", BaseType(DocumentType))
+      in
+
+      (* Evaluate code *)
+      let eval_main i =
+        Logging.start_evaluation i;
+        ImageInfo.initialize ();
+        NamedDest.initialize ();
+        let value =
+          Evaluator.interpret_0 !env ast
         in
-        let eval_main i =
-          Logging.start_evaluation i;
-          ImageInfo.initialize ();
-          NamedDest.initialize ();
-          let value =
-            Evaluator.interpret_0 !env ast
-          in
-          Logging.end_evaluation ();
-          value
+        Logging.end_evaluation ();
+        value
+      in
+
+      if is_doc then
+        (* Export PDF *)
+        let output_pdf (pdfret : HandlePdf.t) : unit =
+          HandlePdf.write_to_file pdfret;
+          let i = open_in_bin (get_abs_path_string abspath_out) in
+          let len = in_channel_length i in
+          let buf = Bytes.create len in
+          really_input i buf 0 len;
+          close_in i;
+          return_pdf execution_counter buf true
         in
         let rec aux (i : int) =
           let value_doc = eval_main i in
@@ -136,14 +146,9 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
               EvalUtil.report_bug_value "main; not a DocumentValue(...)" value_doc
         in
         aux 1
-      in
-
-      let i = open_in_bin (get_abs_path_string abspath_out) in
-      let len = in_channel_length i in
-      let buf = Bytes.create len in
-      really_input i buf 0 len;
-      close_in i;
-      return_pdf execution_counter buf true
+      else
+        let _value = eval_main 1 in
+        return_text execution_counter "<not implemented>"
   with e ->
     let msg = exn_to_error_message e in
     return_error_message "SATySFi" msg []

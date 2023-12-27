@@ -765,12 +765,6 @@ let make_config_error_message : config_error -> string = function
         DisplayLine(Display.show_mono_type ty);
       ]
 
-  | NotAWorkspaceInput(ty) ->
-      make_error_message Typechecker [
-        NormalLine("not a workspace input; it is of type");
-        DisplayLine(Display.show_mono_type ty);
-      ]
-
   | FileModuleNotFound(rng, modnm) ->
       make_error_message Interface [
         NormalLine(Printf.sprintf "at %s:" (Range.to_string rng));

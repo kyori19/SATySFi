@@ -736,7 +736,13 @@ and lex_cell stack = parse
       {
         Stack.pop stack |> ignore;
         Stack.push ProgramState stack;
-        CELL_PROG(get_pos lexbuf)
+        CELL_DEFS(get_pos lexbuf)
+      }
+  | "%?"
+      {
+        Stack.pop stack |> ignore;
+        Stack.push ProgramState stack;
+        CELL_QUERY(get_pos lexbuf)
       }
   | ""
       {

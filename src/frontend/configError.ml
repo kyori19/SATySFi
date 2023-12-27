@@ -85,7 +85,6 @@ type config_error =
   | NotADocumentFile          of abs_path * mono_type
   | NotAStringFile            of abs_path * mono_type
   | NotAWorkspaceFile         of abs_path * mono_type
-  | NotAWorkspaceInput        of mono_type
   | NoMainModule              of module_name
   | UnknownPackageDependency  of Range.t * module_name
   | CannotFindLibraryFile     of lib_path * abs_path list

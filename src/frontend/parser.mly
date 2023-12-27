@@ -287,7 +287,7 @@
 %token<Range.t * (Types.module_name Types.ranged) list * Types.macro_name Types.ranged>
   LONG_BACKSLASH_MACRO LONG_PLUS_MACRO
 
-%token<Range.t> CELL_PROG
+%token<Range.t> CELL_DEFS CELL_QUERY
 
 %token <Range.t> EOI
 
@@ -373,10 +373,12 @@ main:
       { raise (ParseError(EmptyInputFile(rng))) }
 ;
 cell_main:
-  | CELL_PROG; utbinds=list(bind); EOI
-      { CellProg(utbinds) }
+  | CELL_DEFS; utbinds=list(bind); EOI
+      { CellDefs(utbinds) }
+  | CELL_QUERY; utast=expr; EOI
+      { CellExpr(utast) }
   | b=block; EOI
-      { CellBlock(b) }
+      { CellExpr(b) }
 ;
 main_lib:
   | MODULE; modident=UPPER; utsig_opt=option(sig_annot); EXACT_EQ; STRUCT; utbinds=list(bind); END

@@ -623,8 +623,8 @@ type untyped_package =
 [@@deriving show { with_path = false }]
 
 type untyped_cell =
-  | CellProg  of untyped_binding list
-  | CellBlock of untyped_abstract_tree
+  | CellDefs of untyped_binding list
+  | CellExpr of untyped_abstract_tree
 
 type untyped_letrec_pattern_branch =
   | UTLetRecPatternBranch of untyped_pattern_tree list * untyped_abstract_tree
