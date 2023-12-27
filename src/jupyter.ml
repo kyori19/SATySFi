@@ -147,8 +147,17 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
         in
         aux 1
       else
-        let _value = eval_main 1 in
-        return_text execution_counter "<not implemented>"
+        let value = eval_main 1 in
+        let value_str =
+          match value with
+          | BaseConstant(BCUnit) -> "()"
+          | BaseConstant(BCBool b) -> string_of_bool b
+          | BaseConstant(BCInt i) -> string_of_int i
+          | BaseConstant(BCFloat f) -> string_of_float f
+          | BaseConstant(BCString s) -> "`" ^ s ^ "`"
+          | _ -> "<not implemented>"
+        in
+        return_text execution_counter value_str
   with e ->
     let msg = exn_to_error_message e in
     return_error_message "SATySFi" msg []
