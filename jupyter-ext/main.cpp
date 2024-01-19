@@ -4,9 +4,6 @@
 #include <stdlib.h>
 
 #include <b64/encode.h>
-#include <caml/alloc.h>
-#include <caml/callback.h>
-#include <caml/mlvalues.h>
 #include <poppler/cpp/poppler-document.h>
 #include <poppler/cpp/poppler-image.h>
 #include <poppler/cpp/poppler-page-renderer.h>
@@ -17,6 +14,11 @@
 #include <xeus/xkernel_configuration.hpp>
 #include <xeus-zmq/xserver_zmq.hpp>
 #include <xeus-zmq/xzmq_context.hpp>
+
+// caml/compatibility.h conflicts with zmq_addon.hpp
+#include <caml/alloc.h>
+#include <caml/callback.h>
+#include <caml/mlvalues.h>
 
 namespace nl = nlohmann;
 using xeus::xinterpreter;
@@ -42,6 +44,10 @@ private:
     nl::json user_expressions,
     bool allow_stdin
   ) {
+    (void) silent;
+    (void) store_history;
+    (void) user_expressions;
+    (void) allow_stdin;
     const static value *execute = nullptr;
     if (execute == nullptr) {
       execute = caml_named_value("satysfi_jupyter_kernel_execute");
@@ -54,6 +60,8 @@ private:
     const std::string& code,
     int cursor_pos
   ) {
+    (void) code;
+    (void) cursor_pos;
     return xeus::create_successful_reply();
   }
 
@@ -62,12 +70,16 @@ private:
     int cursor_pos,
     int detail_level
   ) {
+    (void) code;
+    (void) cursor_pos;
+    (void) detail_level;
     return xeus::create_successful_reply();
   }
 
   nl::json is_complete_request_impl(
     const std::string& code
   ) {
+    (void) code;
     return xeus::create_successful_reply();
   }
 
