@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(satysfi-jupyter-ext VERSION 0.0.10)
 
 add_library(ocaml INTERFACE)
-execute_process(COMMAND opam var lib OUTPUT_VARIABLE OPAM_LIB_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND opam var lib OUTPUT_VARIABLE OPAM_LIB_PATH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
 target_include_directories(ocaml INTERFACE "${OPAM_LIB_PATH}/ocaml")
 
 find_package(PkgConfig REQUIRED)
