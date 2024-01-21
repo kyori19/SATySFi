@@ -8,7 +8,7 @@ DUNE=dune
 .PHONY: all test test-packages install uninstall clean
 
 all:
-	$(DUNE) build --root .
+	$(DUNE) build --root . @install
 	cp _build/install/default/bin/$(TARGET) .
 
 test:
