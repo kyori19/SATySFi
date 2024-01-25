@@ -744,6 +744,10 @@ and lex_cell stack = parse
         Stack.push ProgramState stack;
         CELL_QUERY(get_pos lexbuf)
       }
+  | ("%%" space* (lower as cmd))
+      {
+        CELL_CMD(get_pos lexbuf, cmd)
+      }
   | ""
       {
         Stack.pop stack |> ignore;

@@ -11,7 +11,7 @@ external return_pdf : int -> bytes -> bool -> unit = "return_pdf"
 external return_error_message : string -> string -> string list -> unit = "return_error_message"
 
 
-let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
+let execute tyenv env output_in_pdf fnast abspath_out abspath_dump execution_counter code =
   try
     (* Lex / Parse *)
     let utcell =
@@ -107,7 +107,7 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
           let buf = Bytes.create len in
           really_input i buf 0 len;
           close_in i;
-          return_pdf execution_counter buf true
+          return_pdf execution_counter buf (not !output_in_pdf)
         in
         let rec aux (i : int) =
           let value_doc = eval_main i in
@@ -158,6 +158,18 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
           | _ -> "<not implemented>"
         in
         return_text execution_counter value_str
+    | CellCmd(cmd_name) ->
+      begin
+        match cmd_name with
+        | "render-in-pdf" ->
+            output_in_pdf := true;
+            return_text execution_counter "Output mode is switched to PDF."
+        | "render-in-image" ->
+            output_in_pdf := false;
+            return_text execution_counter "Output mode is switched to image."
+        | _ ->
+            return_error_message "SATySFi" ("Unknown command: " ^ cmd_name) []
+      end
   with e ->
     let msg = exn_to_error_message e in
     return_error_message "SATySFi" msg []
@@ -166,7 +178,8 @@ let execute tyenv env fnast abspath_out abspath_dump execution_counter code =
 let main connection_file tyenv env fnast abspath_out abspath_dump =
   let tyenv = ref tyenv in
   let env = ref env in
-  Callback.register "satysfi_jupyter_kernel_execute" (execute tyenv env fnast abspath_out abspath_dump);
+  let output_in_pdf = ref false in
+  Callback.register "satysfi_jupyter_kernel_execute" (execute tyenv env output_in_pdf fnast abspath_out abspath_dump);
   let file_name =
     match connection_file with
     | None -> "connection.json"

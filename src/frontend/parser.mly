@@ -288,6 +288,7 @@
   LONG_BACKSLASH_MACRO LONG_PLUS_MACRO
 
 %token<Range.t> CELL_DEFS CELL_QUERY
+%token<Range.t * Types.cell_command_name> CELL_CMD
 
 %token <Range.t> EOI
 
@@ -377,6 +378,11 @@ cell_main:
       { CellDefs(utbinds) }
   | CELL_QUERY; utast=expr; EOI
       { CellExpr(utast) }
+  | cmd=CELL_CMD; EOI
+      {
+        let (_, cmdnm) = cmd in
+        CellCmd(cmdnm)
+      }
   | b=block; EOI
       { CellExpr(b) }
 ;

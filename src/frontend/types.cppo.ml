@@ -622,9 +622,11 @@ type untyped_package =
     }
 [@@deriving show { with_path = false }]
 
+type cell_command_name = string
 type untyped_cell =
   | CellDefs of untyped_binding list
   | CellExpr of untyped_abstract_tree
+  | CellCmd  of cell_command_name
 
 type untyped_letrec_pattern_branch =
   | UTLetRecPatternBranch of untyped_pattern_tree list * untyped_abstract_tree
