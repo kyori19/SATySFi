@@ -8,6 +8,7 @@ open EnvelopeSystemBase
 
 type input_kind =
   | InputSatysfi
+  | InputSatysfiWorkspace
   | InputMarkdown
 
 type parse_error =
@@ -331,6 +332,7 @@ type output_mode =
 
 type typecheck_config = {
   is_text_mode : bool;
+  is_workspace_mode : bool;
 }
 
 type pre = {

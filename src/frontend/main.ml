@@ -94,9 +94,10 @@ let get_candidate_file_extensions (output_mode : output_mode) =
 
 let get_input_kind_from_extension (abspath_doc : abs_path) =
   match Filename.extension (get_abs_path_string abspath_doc) with
-  | ".saty" -> Ok(InputSatysfi)
-  | ".md"   -> Ok(InputMarkdown)
-  | ext     -> Error(UnexpectedExtension(ext))
+  | ".saty"  -> Ok(InputSatysfi)
+  | ".satyw" -> Ok(InputSatysfiWorkspace)
+  | ".md"    -> Ok(InputMarkdown)
+  | ext      -> Error(UnexpectedExtension(ext))
 
 
 let make_used_as_map (envelope_dependencies : envelope_dependency list) : envelope_name ModuleNameMap.t =
@@ -172,10 +173,12 @@ let build_package
 
     let typecheck_config =
       {
-        is_text_mode =
+        is_text_mode = begin
           match output_mode with
           | PdfMode     -> false
           | TextMode(_) -> true
+        end;
+        is_workspace_mode = false; (* does not matter *)
       }
     in
     let extensions = get_candidate_file_extensions output_mode in
@@ -242,14 +245,17 @@ let open ResultMonad in
     let abspath_out = make_absolute_if_relative ~origin:absdir_current fpath_out in
     let abspath_dump = make_absolute_if_relative ~origin:absdir_current fpath_dump in
     let abspath_deps_config = make_absolute_if_relative ~origin:absdir_current fpath_deps in
+    let* input_kind = get_input_kind_from_extension abspath_in in
     let output_mode = make_output_mode text_mode_formats_str_opt in
 
     let typecheck_config =
       {
-        is_text_mode =
+        is_text_mode = begin
           match output_mode with
           | PdfMode     -> false
           | TextMode(_) -> true
+        end;
+        is_workspace_mode = input_kind == InputSatysfiWorkspace;
       }
     in
     let pdf_config =
@@ -263,7 +269,6 @@ let open ResultMonad in
     in
     let job_directory = get_job_directory abspath_in in
     let runtime_config = { job_directory } in
-    let* input_kind = get_input_kind_from_extension abspath_in in
     let extensions = get_candidate_file_extensions output_mode in
 
     (* Gets the initial type environment, which consists only of primitives: *)
@@ -305,7 +310,7 @@ let open ResultMonad in
     in
 
     (* Evaluation: *)
-    if type_check_only then
+    if type_check_only || typecheck_config.is_workspace_mode then (* TODO *)
       return ()
     else
       let libs = List.append libs_dep libs_local in
@@ -341,10 +346,12 @@ let test_package
 
     let typecheck_config =
       {
-        is_text_mode =
+        is_text_mode = begin
           match output_mode with
           | PdfMode     -> false
           | TextMode(_) -> true
+        end;
+        is_workspace_mode = false; (* does not matter *)
       }
     in
     let extensions = get_candidate_file_extensions output_mode in

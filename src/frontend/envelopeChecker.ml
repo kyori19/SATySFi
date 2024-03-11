@@ -102,16 +102,23 @@ let typecheck_document_file (display_config : Logging.config) (config : typechec
   Logging.begin_to_typecheck_file display_config abspath_in;
   let* (ty, ast) = Typechecker.main config Stage1 tyenv utast |> Result.map_error (fun tyerr -> TypeError(tyerr)) in
   Logging.pass_type_check (Some(Display.show_mono_type ty));
-  if config.is_text_mode then
-    if Typechecker.are_unifiable ty (Range.dummy "text-mode", BaseType(StringType)) then
-      return ast
+  let ty_expected =
+    let ret =
+      if config.is_text_mode then
+        (Range.dummy "text-mode", BaseType(StringType))
+      else
+        (Range.dummy "pdf-mode", BaseType(DocumentType))
+    in
+    if config.is_workspace_mode then
+      let arg = (Range.dummy "argument", BaseType(BlockTextType)) in
+      (Range.dummy "workspace-mode", FuncType(RowEmpty, arg, ret))
     else
-      err (NotAStringFile(abspath_in, ty))
+      ret
+  in
+  if Typechecker.are_unifiable ty ty_expected then
+    return ast
   else
-    if Typechecker.are_unifiable ty (Range.dummy "pdf-mode", BaseType(DocumentType)) then
-      return ast
-    else
-      err (NotADocumentFile(abspath_in, ty))
+    err (NotAValidInputFile(abspath_in, ty, ty_expected))
 
 
 let check_library_envelope (display_config : Logging.config) (config : typecheck_config) (tyenv_prim : Typeenv.t) (genv : global_type_environment) (used_as_map : envelope_name ModuleNameMap.t) (main_module_name : module_name) (utlibs : (abs_path * untyped_library_file) list) =

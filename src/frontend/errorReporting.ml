@@ -652,18 +652,13 @@ let make_config_error_message (display_config : Logging.config) : config_error -
         DisplayLine(get_abs_path_string abspath);
       ]
 
-  | NotADocumentFile(abspath_in, ty) ->
+  | NotAValidInputFile(abspath_in, ty, ty_expected) ->
       let fname = Logging.show_path display_config abspath_in in
       make_error_message Typechecker [
-        NormalLine(Printf.sprintf "file '%s' is not a document file; it is of type" fname);
-        DisplayLine(Display.show_mono_type ty);
-      ]
-
-  | NotAStringFile(abspath_in, ty) ->
-      let fname = Logging.show_path display_config abspath_in in
-      make_error_message Typechecker [
-        NormalLine(Printf.sprintf "file '%s' is not a file for generating text; it is of type" fname);
-        DisplayLine(Display.show_mono_type ty);
+        NormalLine(Printf.sprintf "file '%s' is not a valid input file; it is of type" fname);
+        DisplayLine(Printf.sprintf "%s," (Display.show_mono_type ty));
+        NormalLine(Printf.sprintf "but is expected of type");
+        DisplayLine(Printf.sprintf "%s." (Display.show_mono_type ty_expected));
       ]
 
   | FileModuleNotFound(rng, modnm) ->

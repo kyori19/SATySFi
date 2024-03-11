@@ -61,8 +61,7 @@ type config_error =
   | NotALibraryFile           of abs_path
   | FileModuleNotFound        of Range.t * module_name
   | FileModuleNameConflict    of module_name * abs_path * abs_path
-  | NotADocumentFile          of abs_path * mono_type
-  | NotAStringFile            of abs_path * mono_type
+  | NotAValidInputFile        of abs_path * mono_type * mono_type
   | NoMainModule              of module_name
   | UnknownPackageDependency  of Range.t * module_name
   | EnvelopeNameConflict      of envelope_name
