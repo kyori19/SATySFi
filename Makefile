@@ -9,7 +9,7 @@ DUNE=dune
 .PHONY: all test test-packages promote-package-locks update-ci-cache install uninstall clean
 
 all:
-	$(DUNE) build --root .
+	$(DUNE) build --root . @install
 	cp _build/install/default/bin/$(SATYSFI) .
 	cp _build/install/default/bin/$(SAPHE) .
 
