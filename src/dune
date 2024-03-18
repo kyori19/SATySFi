@@ -29,7 +29,8 @@
    yojson-with-position
    uri)
  (preprocess
-   (pps ppx_deriving.show)))
+   (pps ppx_deriving.show))
+ (foreign_stubs (language c) (names jupyter_stub)))
 
 ;; dune requires all the .ml/.mli files to be in the same directory as the jbuild.
 ;; https://github.com/ocaml/dune/issues/109
