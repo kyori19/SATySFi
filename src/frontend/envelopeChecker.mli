@@ -22,4 +22,4 @@ val main_document :
   used_as_map:(envelope_name ModuleNameMap.t) ->
   (abs_path * untyped_library_file) list ->
   abs_path * untyped_document_file ->
-  ((abs_path * binding list) list * abstract_tree, config_error) result
+  ((abs_path * binding list) list * type_environment * abstract_tree, config_error) result

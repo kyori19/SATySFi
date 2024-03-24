@@ -222,7 +222,7 @@ let main (display_config : Logging.config) (config : typecheck_config) (tyenv_pr
       check_font_envelope main_module_name font_files
 
 
-let main_document (display_config : Logging.config) (config : typecheck_config) (tyenv_prim : Typeenv.t) (genv : global_type_environment) ~(used_as_map : envelope_name ModuleNameMap.t) (sorted_locals : (abs_path * untyped_library_file) list) (abspath_and_utdoc : abs_path * untyped_document_file) : ((abs_path * binding list) list * abstract_tree) ok =
+let main_document (display_config : Logging.config) (config : typecheck_config) (tyenv_prim : Typeenv.t) (genv : global_type_environment) ~(used_as_map : envelope_name ModuleNameMap.t) (sorted_locals : (abs_path * untyped_library_file) list) (abspath_and_utdoc : abs_path * untyped_document_file) : ((abs_path * binding list) list * Typeenv.t * abstract_tree) ok =
   let open ResultMonad in
   let* (lenv, libacc) =
     sorted_locals |> foldM (fun (lenv, libacc) (abspath, utlib) ->
@@ -244,14 +244,15 @@ let main_document (display_config : Logging.config) (config : typecheck_config) 
   let libs = Alist.to_list libacc in
 
   (* Typechecks the document: *)
-  let* ast_doc =
+  let* (tyenv, ast_doc) =
     let (abspath, (_attrs, header, utast)) = abspath_and_utdoc in
     let* tyenv =
       tyenv_prim |> add_dependency_to_type_environment
         ~import_envelope_only:false
         header genv used_as_map lenv
     in
-    typecheck_document_file display_config config tyenv abspath utast
+    let* ast_doc = typecheck_document_file display_config config tyenv abspath utast in
+    return (tyenv, ast_doc)
   in
 
-  return (libs, ast_doc)
+  return (libs, tyenv, ast_doc)

@@ -304,7 +304,7 @@ let open ResultMonad in
     in
 
     (* Typechecking and elaboration: *)
-    let* (libs_local, ast_doc) =
+    let* (libs_local, _tyenv, ast_doc) =
       EnvelopeChecker.main_document
         display_config typecheck_config tyenv_prim genv ~used_as_map sorted_locals (abspath_in, utdoc)
     in
