@@ -75,17 +75,6 @@ let evaluate_bindings (display_config : Logging.config) ~(is_bytecomp_mode : boo
   ) env
 
 
-let preprocess_and_evaluate (display_config : Logging.config) (pdf_config : HandlePdf.config) ~(page_number_limit : int) ~(is_bytecomp_mode : bool) (output_mode : output_mode) ~(run_tests : bool) (env : environment) (libs : (abs_path * binding list) list) (ast_doc : abstract_tree) (_abspath_in : abs_path) (abspath_out : abs_path) (abspath_dump : abs_path) =
-  (* Performs preprocessing: *)
-  let (env, codebinds) = preprocess_bindings display_config ~run_tests env libs in
-  let code_doc = Evaluator.interpret_1 env ast_doc in
-
-  (* Performs evaluation: *)
-  let env = evaluate_bindings display_config ~is_bytecomp_mode ~run_tests env codebinds in
-  let ast_doc = unlift_code code_doc in
-  BuildDocument.main output_mode pdf_config ~page_number_limit display_config ~is_bytecomp_mode env ast_doc abspath_out abspath_dump
-
-
 let get_candidate_file_extensions (output_mode : output_mode) =
   match output_mode with
   | PdfMode           -> [ ".satyh"; ".satyg" ]
@@ -310,18 +299,23 @@ let open ResultMonad in
     in
 
     (* Evaluation: *)
-    if type_check_only || typecheck_config.is_workspace_mode then (* TODO *)
+    if type_check_only then
       return ()
     else
       let libs = List.append libs_dep libs_local in
-      preprocess_and_evaluate
-        display_config
-        pdf_config
-        ~page_number_limit
-        ~is_bytecomp_mode
-        output_mode
-        ~run_tests:false
-        env libs ast_doc abspath_in abspath_out abspath_dump
+
+      (* Performs preprocessing: *)
+      let (env, codebinds) = preprocess_bindings display_config ~run_tests:false env libs in
+      let code_doc = Evaluator.interpret_1 env ast_doc in
+
+      (* Performs evaluation: *)
+      let env = evaluate_bindings display_config ~is_bytecomp_mode ~run_tests:false env codebinds in
+      let ast_doc = unlift_code code_doc in
+
+      if typecheck_config.is_workspace_mode then
+        return ()
+      else
+        BuildDocument.main output_mode pdf_config ~page_number_limit display_config ~is_bytecomp_mode env ast_doc abspath_out abspath_dump
 
   ) |> function
   | Ok(())   -> ()
