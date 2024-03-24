@@ -85,14 +85,14 @@ let add_dependency_to_type_environment ~(import_envelope_only : bool) (header : 
   ) tyenv
 
 
-let typecheck_library_file (display_config : Logging.config) (config : typecheck_config) ~for_struct:(tyenv_for_struct : Typeenv.t) ~for_sig:(tyenv_for_sig : Typeenv.t) (abspath_in : abs_path) (utsig_opt : untyped_signature option) (utbinds : untyped_binding list) : (StructSig.t abstracted * binding list) ok =
+let typecheck_library_file (display_config : Logging.config) (config : typecheck_config) ~for_struct:(tyenv_for_struct : Typeenv.t) ~for_sig:(tyenv_for_sig : Typeenv.t) (abspath_in : abs_path) (utsig_opt : untyped_signature option) (utbinds : untyped_binding list) : (StructSig.t * binding list) ok =
   let open ResultMonad in
   let res =
     Logging.begin_to_typecheck_file display_config abspath_in;
     let* absmodsig_opt = utsig_opt |> optionM (ModuleTypechecker.typecheck_signature config tyenv_for_sig) in
-    let* ret = ModuleTypechecker.main config tyenv_for_struct absmodsig_opt utbinds in
+    let* (_, (_, ssig), binds) = ModuleTypechecker.main config tyenv_for_struct absmodsig_opt utbinds in
     Logging.pass_type_check None;
-    return ret
+    return (ssig, binds)
   in
   res |> Result.map_error (fun tyerr -> TypeError(tyerr))
 
@@ -139,7 +139,7 @@ let check_library_envelope (display_config : Logging.config) (config : typecheck
       let (_, modnm) = modident in
       if String.equal modnm main_module_name then
         (* Typechecks the main module: *)
-        let* ((_quant, ssig), binds) =
+        let* (ssig, binds) =
           let* tyenv_for_sig =
             tyenv_prim |> add_dependency_to_type_environment
               ~import_envelope_only:true
@@ -151,7 +151,7 @@ let check_library_envelope (display_config : Logging.config) (config : typecheck
         let lenv = lenv |> ModuleNameMap.add modnm ssig in
         return (lenv, Alist.extend libacc (abspath, binds), Some(ssig))
       else
-        let* ((_quant, ssig), binds) =
+        let* (ssig, binds) =
           typecheck_library_file display_config config
             ~for_struct:tyenv_for_struct ~for_sig:tyenv_for_struct abspath utsig_opt utbinds
         in
@@ -228,7 +228,7 @@ let main_document (display_config : Logging.config) (config : typecheck_config) 
     sorted_locals |> foldM (fun (lenv, libacc) (abspath, utlib) ->
       let (_attrs, header, (modident, utsig_opt, utbinds)) = utlib in
       let (_, modnm) = modident in
-      let* ((_quant, ssig), binds) =
+      let* (ssig, binds) =
         let* tyenv =
           tyenv_prim |> add_dependency_to_type_environment
             ~import_envelope_only:false

@@ -646,7 +646,7 @@ let rec typecheck_module (config : typecheck_config) (tyenv : Typeenv.t) (utmod 
       return ((OpaqueIDMap.empty, modsig), [])
 
   | UTModBinds(utbinds) ->
-      let* ((quant, ssig), binds) = typecheck_binding_list config tyenv utbinds in
+      let* (_, (quant, ssig), binds) = typecheck_binding_list config tyenv utbinds in
       return ((quant, ConcStructure(ssig)), binds)
 
   | UTModFunctor(modident1, utsig1, utmod2) ->
@@ -714,23 +714,20 @@ let rec typecheck_module (config : typecheck_config) (tyenv : Typeenv.t) (utmod 
       return (absmodsig, [])
 
 
-and typecheck_binding_list (config : typecheck_config) (tyenv : Typeenv.t) (utbinds : untyped_binding list) : (StructSig.t abstracted * binding list) ok =
+and typecheck_binding_list (config : typecheck_config) (tyenv : Typeenv.t) (utbinds : untyped_binding list) : (Typeenv.t * StructSig.t abstracted * binding list) ok =
   let open ResultMonad in
-  let* (binds, (quant, ssig)) =
-    let* (bindacc, _tyenv, quantacc, ssigacc) =
-      utbinds |> foldM (fun (bindacc, tyenv, quantacc, ssigacc) utbind ->
-        let* (binds, (quant, ssig)) = typecheck_binding config tyenv utbind in
-        let tyenv = tyenv |> add_to_type_environment_by_signature ssig in
-        let bindacc = Alist.append bindacc binds in
-        let quantacc = unify_quantifier quantacc quant in
-        match StructSig.union ssigacc ssig with
-        | Ok(ssigacc) -> return (bindacc, tyenv, quantacc, ssigacc)
-        | Error(s)    -> let (rng, _) = utbind in err (ConflictInSignature(rng, s))
-      ) (Alist.empty, tyenv, OpaqueIDMap.empty, StructSig.empty)
-    in
-    return (Alist.to_list bindacc, (quantacc, ssigacc))
+  let* (bindacc, tyenv, quantacc, ssigacc) =
+    utbinds |> foldM (fun (bindacc, tyenv, quantacc, ssigacc) utbind ->
+      let* (binds, (quant, ssig)) = typecheck_binding config tyenv utbind in
+      let tyenv = tyenv |> add_to_type_environment_by_signature ssig in
+      let bindacc = Alist.append bindacc binds in
+      let quantacc = unify_quantifier quantacc quant in
+      match StructSig.union ssigacc ssig with
+      | Ok(ssigacc) -> return (bindacc, tyenv, quantacc, ssigacc)
+      | Error(s)    -> let (rng, _) = utbind in err (ConflictInSignature(rng, s))
+    ) (Alist.empty, tyenv, OpaqueIDMap.empty, StructSig.empty)
   in
-  return ((quant, ssig), binds)
+  return (tyenv, (quantacc, ssigacc), Alist.to_list bindacc)
 
 
 and typecheck_nonrec (pre : pre) (tyenv : Typeenv.t) (ident : var_name ranged) (utast1 : untyped_abstract_tree) (ty_expected_opt : mono_type option) =
@@ -952,14 +949,14 @@ and typecheck_binding (config : typecheck_config) (tyenv : Typeenv.t) (utbind : 
       return (binds, (OpaqueIDMap.empty, ssig))
 
 
-let main (config : typecheck_config) (tyenv : Typeenv.t) (absmodsig_opt : (signature abstracted) option) (utbinds : untyped_binding list) : (StructSig.t abstracted * binding list) ok =
+let main (config : typecheck_config) (tyenv : Typeenv.t) (absmodsig_opt : (signature abstracted) option) (utbinds : untyped_binding list) : (Typeenv.t * StructSig.t abstracted * binding list) ok =
   let open ResultMonad in
   match absmodsig_opt with
   | None ->
       typecheck_binding_list config tyenv utbinds
 
   | Some(absmodsig) ->
-      let* ((_, ssig), binds) = typecheck_binding_list config tyenv utbinds in
+      let* (tyenv, (_, ssig), binds) = typecheck_binding_list config tyenv utbinds in
       let rng = Range.dummy "main_bindings" in (* TODO (error): give appropriate ranges *)
       let* (quant, modsig) = coerce_signature rng (ConcStructure(ssig)) absmodsig in
       let ssig =
@@ -967,4 +964,4 @@ let main (config : typecheck_config) (tyenv : Typeenv.t) (absmodsig_opt : (signa
         | ConcFunctor(_)      -> assert false
         | ConcStructure(ssig) -> ssig
       in
-      return ((quant, ssig), binds)
+      return (tyenv, (quant, ssig), binds)
