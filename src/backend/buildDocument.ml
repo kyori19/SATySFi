@@ -109,7 +109,7 @@ let evaluate (reset : unit -> unit) ~(is_bytecomp_mode : bool) (i : int) (env_fr
   return value
 
 
-let build_document (transform : syntactic_value -> 'a) (reset : unit -> unit) (output : abs_path -> 'a -> unit) (display_config : Logging.config) ~(is_bytecomp_mode : bool) (env : environment) (ast : abstract_tree) (abspath_out : abs_path) (abspath_dump : abs_path) =
+let build_document (transform : syntactic_value -> 'a) (reset : unit -> unit) (output : abs_path -> 'a -> unit) ~(is_bytecomp_mode : bool) (env : environment) (ast : abstract_tree) (abspath_out : abs_path) (abspath_dump : abs_path) =
   let open ResultMonad in
   let env_freezed = freeze_environment env in
   let rec aux (i : int) =
@@ -123,13 +123,11 @@ let build_document (transform : syntactic_value -> 'a) (reset : unit -> unit) (o
     | CrossRef.CountMax ->
         Logging.achieve_count_max ();
         output abspath_out document;
-        Logging.end_output display_config abspath_out;
         return ()
 
     | CrossRef.CanTerminate unresolved_crossrefs ->
         Logging.achieve_fixpoint unresolved_crossrefs;
         output abspath_out document;
-        Logging.end_output display_config abspath_out;
         return ()
   in
   aux 1

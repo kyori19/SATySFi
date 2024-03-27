@@ -8,7 +8,6 @@ val main :
   output_mode ->
   HandlePdf.config ->
   page_number_limit:int ->
-  Logging.config ->
   is_bytecomp_mode:bool ->
   environment ->
   abstract_tree ->

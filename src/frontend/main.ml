@@ -315,7 +315,11 @@ let open ResultMonad in
       if typecheck_config.is_workspace_mode then
         return ()
       else
-        BuildDocument.main output_mode pdf_config ~page_number_limit display_config ~is_bytecomp_mode env ast_doc abspath_out abspath_dump
+        let* () =
+          BuildDocument.main output_mode pdf_config ~page_number_limit ~is_bytecomp_mode env ast_doc abspath_out abspath_dump
+        in
+        Logging.end_output display_config abspath_out;
+        return ()
 
   ) |> function
   | Ok(())   -> ()
