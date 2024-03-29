@@ -5,10 +5,6 @@ open MyUtil
 open Types
 
 
-let k_success (utsrc : untyped_source_file) =
-  utsrc
-
-
 let k_fail chkpt =
   match chkpt with
   | I.HandlingError(penv) ->
@@ -22,27 +18,45 @@ let k_fail chkpt =
       assert false
 
 
-let process_common (abspath : abs_path) (lexbuf : Lexing.lexbuf) =
+let lexbuf_from_file (abspath : abs_path) =
+  let chan = open_in_abs abspath in
+  let lexbuf = Lexing.from_channel chan in
+  Lexing.set_filename lexbuf (get_abs_path_string abspath);
+  lexbuf
+
+
+let lexbuf_from_string (name : string) (s : string) =
+  let lexbuf = Lexing.from_string s in
+  Lexing.set_filename lexbuf name;
+  lexbuf
+
+
+let parse parser_start stack lexbuf =
   let open ResultMonad in
-  let abspathstr = get_abs_path_string abspath in
-  let stack = Lexer.reset_to_program () in
-  lexbuf.Lexing.lex_curr_p <- { lexbuf.Lexing.lex_curr_p with pos_fname = abspathstr };
   let supplier = I.lexer_lexbuf_to_supplier (Lexer.cut_token stack) lexbuf in
   try
-    return @@ I.loop_handle k_success k_fail supplier (Parser.Incremental.main lexbuf.Lexing.lex_curr_p)
+    return @@ I.loop_handle Fun.id k_fail supplier (parser_start lexbuf.Lexing.lex_curr_p)
   with
   | ParseError(e) ->
       err e
 
 
+let parse_main =
+  let stack = Lexer.reset_to_program () in
+  parse Parser.Incremental.main stack
+
+
+let parse_cell_main code =
+  let stack = Lexer.initialize Lexer.CellState in
+  let lexbuf = lexbuf_from_string "<input>" code in
+  parse Parser.Incremental.cell_main stack lexbuf
+
+
 let process_file (abspath : abs_path) =
-  let inc = open_in_abs abspath in
-  let lexbuf = Lexing.from_channel inc in
-  let res = process_common abspath lexbuf in
-  close_in inc;
-  res
+  let lexbuf = lexbuf_from_file abspath in
+  parse_main lexbuf
 
 
 let process_text (abspath : abs_path) (s : string) =
-  let lexbuf = Lexing.from_string s in
-  process_common abspath lexbuf
+  let lexbuf = lexbuf_from_string (get_abs_path_string abspath) s in
+  parse_main lexbuf
