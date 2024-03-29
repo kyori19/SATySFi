@@ -12,5 +12,5 @@ val main :
   environment ->
   abstract_tree ->
   abs_path ->
-  abs_path ->
+  abs_path option ->
   (unit, config_error) result

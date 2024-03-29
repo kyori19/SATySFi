@@ -1,14 +1,14 @@
 
 open MyUtil
 
-val initialize : abs_path -> bool
+val initialize : abs_path option -> bool
 
 type answer =
   | NeedsAnotherTrial
   | CanTerminate of string list
   | CountMax
 
-val needs_another_trial : abs_path -> answer
+val needs_another_trial : abs_path option -> answer
 
 val register : string -> string -> unit
 

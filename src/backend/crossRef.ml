@@ -52,19 +52,20 @@ let write_dump_file (abspath : abs_path) : unit =
   YS.to_file (get_abs_path_string abspath) json
 
 
-let initialize (abspath_dump : abs_path) : bool =
-  begin
-    count := 1;
-    CrossRefHashTable.clear main_hash_table;
-    let dump_file_exists = Sys.file_exists (get_abs_path_string abspath_dump) in
-    begin
-      if dump_file_exists then
-        read_dump_file abspath_dump
-      else
-        ()
-    end;
-    dump_file_exists
-  end
+let initialize (abspath_dump : abs_path option) : bool =
+  count := 1;
+  CrossRefHashTable.clear main_hash_table;
+  match abspath_dump with
+  | None -> false
+  | Some(abspath_dump) ->
+      let dump_file_exists = Sys.file_exists (get_abs_path_string abspath_dump) in
+      begin
+        if dump_file_exists then
+          read_dump_file abspath_dump
+        else
+          ()
+      end;
+      dump_file_exists
 
 
 type answer =
@@ -73,11 +74,16 @@ type answer =
   | CountMax
 
 
-let needs_another_trial (abspath : abs_path) : answer =
+let needs_another_trial (abspath : abs_path option) : answer =
+  let write () =
+    match abspath with
+    | None -> ()
+    | Some(abspath) -> write_dump_file abspath
+  in
   if !changed then
     if !count >= !count_max then
       begin
-        write_dump_file abspath;
+        write ();
         CountMax
       end
     else
@@ -89,7 +95,7 @@ let needs_another_trial (abspath : abs_path) : answer =
       end
   else
     begin
-      write_dump_file abspath;
+      write ();
       CanTerminate (List.sort_uniq String.compare !unresolved_crossrefs)
     end
 

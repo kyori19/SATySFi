@@ -232,7 +232,7 @@ let open ResultMonad in
 
     let abspath_in = make_absolute_if_relative ~origin:absdir_current fpath_in in
     let abspath_out = make_absolute_if_relative ~origin:absdir_current fpath_out in
-    let abspath_dump = make_absolute_if_relative ~origin:absdir_current fpath_dump in
+    let abspath_dump = Some(make_absolute_if_relative ~origin:absdir_current fpath_dump) in
     let abspath_deps_config = make_absolute_if_relative ~origin:absdir_current fpath_deps in
     let* input_kind = get_input_kind_from_extension abspath_in in
     let output_mode = make_output_mode text_mode_formats_str_opt in
@@ -274,7 +274,12 @@ let open ResultMonad in
 
     (* Initializes the dump file: *)
     let dump_file_exists = CrossRef.initialize abspath_dump in
-    Logging.dump_file display_config ~already_exists:dump_file_exists abspath_dump;
+    begin
+      match abspath_dump with
+      | None -> ()
+      | Some(abspath_dump) ->
+          Logging.dump_file display_config ~already_exists:dump_file_exists abspath_dump
+    end;
 
     (* Typechecks each depended envelope in the topological order: *)
     let* (genv, configenv, libs_dep) =
