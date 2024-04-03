@@ -109,6 +109,11 @@ let evaluate (reset : unit -> unit) ~(is_bytecomp_mode : bool) (i : int) (env_fr
   return value
 
 
+let evaluate_once (reset : unit -> unit) ~(is_bytecomp_mode : bool) (env : environment) (ast : abstract_tree) : (syntactic_value, config_error) result =
+  let env_freezed = freeze_environment env in
+  evaluate reset ~is_bytecomp_mode 1 env_freezed ast
+
+
 let build_document (transform : syntactic_value -> 'a) (reset : unit -> unit) (output : abs_path -> 'a -> unit) ~(is_bytecomp_mode : bool) (env : environment) (ast : abstract_tree) (abspath_out : abs_path) (abspath_dump : abs_path option) =
   let open ResultMonad in
   let env_freezed = freeze_environment env in
