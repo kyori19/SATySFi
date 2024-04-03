@@ -298,7 +298,7 @@ let open ResultMonad in
     in
 
     (* Typechecking and elaboration: *)
-    let* (libs_local, _tyenv, ast_doc) =
+    let* (libs_local, tyenv, ast_doc) =
       EnvelopeChecker.main_document
         display_config typecheck_config tyenv_prim genv ~used_as_map sorted_locals (abspath_in, utdoc)
     in
@@ -318,7 +318,18 @@ let open ResultMonad in
       let ast_doc = unlift_code code_doc in
 
       if typecheck_config.is_workspace_mode then
-        return ()
+        let config =
+          Jupyter.{
+            display_config;
+            output_mode;
+            typecheck_config;
+            pdf_config;
+            page_number_limit;
+            is_bytecomp_mode;
+            fnast = ast_doc;
+          }
+        in
+        return (Jupyter.main config tyenv env (get_abs_path_string abspath_out))
       else
         let* () =
           BuildDocument.main output_mode pdf_config ~page_number_limit ~is_bytecomp_mode env ast_doc abspath_out abspath_dump

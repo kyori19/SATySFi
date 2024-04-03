@@ -8,7 +8,7 @@ open SyntaxBase
 open Types
 
 
-external _start_kernel : string -> unit = "start_kernel"
+external start_kernel : string -> unit = "start_kernel"
 external return_text : int -> string -> unit = "return_text"
 external return_pdf : int -> string -> bool -> unit = "return_pdf"
 external return_error : string -> string -> unit = "return_error"
@@ -125,7 +125,7 @@ let handle_cmd eval_env execution_counter = function
     return_error "Command Handler" ("Unknown command: " ^ cmd)
 
 
-let _execute eval_config eval_env execution_counter code =
+let execute eval_config eval_env execution_counter code =
   let res =
     let open ResultMonad in
     let* utcell = parse_cell_main code |> Result.map_error (fun e -> FailedToParse(e)) in
@@ -137,3 +137,15 @@ let _execute eval_config eval_env execution_counter code =
   match res with
   | Ok _ -> ()
   | Error(e) -> return_error "SATySFi" (make_config_error_message eval_config.display_config e)
+
+
+let main eval_config tyenv env connection_file =
+  let eval_env =
+    ref {
+      tyenv = tyenv;
+      env = env;
+      rasterize = true;
+    }
+  in
+  Callback.register "satysfi_jupyter_kernel_execute" (execute eval_config eval_env);
+  start_kernel connection_file
